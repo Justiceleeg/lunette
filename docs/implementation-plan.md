@@ -169,10 +169,10 @@ export default function RootLayout({
    - React 19.2 features available (View Transitions, useEffectEvent)
 
 **Acceptance Criteria:**
-- [ ] `pnpm dev` runs without errors
-- [ ] Dark background visible at localhost:3000
-- [ ] All dependencies installed at correct versions
-- [ ] No TypeScript errors
+- [x] `pnpm dev` runs without errors
+- [x] Dark background visible at localhost:3000
+- [x] All dependencies installed at correct versions
+- [x] No TypeScript errors
 
 ---
 
