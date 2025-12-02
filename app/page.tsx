@@ -22,6 +22,7 @@ const DEFAULT_CODE = `// Welcome to Lunette!
 // Press Cmd+Enter (or Ctrl+Enter) to run the code
 // The pattern will start playing automatically
 
+// Simple synth pattern - watch the highlights sync with the beat!
 note("c3 e3 g3 b3").sound("sawtooth")`;
 
 export default function Home() {

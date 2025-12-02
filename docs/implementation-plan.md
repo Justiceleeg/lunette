@@ -326,10 +326,10 @@ const highlightMark = Decoration.mark({ class: 'cm-strudel-highlight' });
 ```
 
 **Acceptance Criteria:**
-- [ ] Playing `s("bd hh sd hh")` highlights each sound as it plays
-- [ ] Highlights clear when playback stops
-- [ ] Highlights sync accurately with audio (no noticeable lag)
-- [ ] Multiple simultaneous highlights work (for stacked patterns)
+- [x] Playing `s("bd hh sd hh")` highlights each sound as it plays
+- [x] Highlights clear when playback stops
+- [x] Highlights sync accurately with audio (no noticeable lag)
+- [x] Multiple simultaneous highlights work (for stacked patterns)
 
 ---
 

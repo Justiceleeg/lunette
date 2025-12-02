@@ -156,42 +156,104 @@ export function setBpm(bpm: number): void {
   }
 }
 
+// Type definition for Strudel's hap (event) structure
+interface StrudelHap {
+  whole: { begin: number; end: number };
+  part: { begin: number; end: number };
+  context?: {
+    locations?: Array<{ start: number; end: number }>;
+  };
+  // Some versions might store locations in value
+  value?: {
+    locations?: Array<{ start: number; end: number }>;
+  };
+  // Hap methods
+  hasOnset?: () => boolean;
+  isActive?: (time: number) => boolean;
+  endClipped?: number;
+}
+
+// Strudel scheduler interface - scheduler.now() is a function!
+interface StrudelScheduler {
+  now: () => number; // Returns current cycle position
+  pattern?: {
+    queryArc: (start: number, end: number) => StrudelHap[];
+  };
+}
+
+function extractLocations(hap: StrudelHap): Array<{ start: number; end: number }> {
+  // Location data might be in context.locations or value.locations
+  return hap.context?.locations ?? hap.value?.locations ?? [];
+}
+
+// Track last frame for incremental querying (like Strudel's Drawer)
+let lastFrame: number | null = null;
+let visibleHaps: StrudelHap[] = [];
+
 function startHighlightLoop(): void {
   if (animationFrameId !== null) return;
+
+  // Reset state
+  lastFrame = null;
+  visibleHaps = [];
 
   const loop = () => {
     if (!runtime.isPlaying) {
       animationFrameId = null;
+      lastFrame = null;
+      visibleHaps = [];
       return;
     }
 
     try {
       const repl = runtime.repl as {
-        scheduler: {
-          getAudioContext: () => AudioContext;
-          pattern?: {
-            queryArc: (
-              start: number,
-              end: number
-            ) => Array<{ value?: { locations?: Array<{ start: number; end: number }> } }>;
-          };
-        };
+        scheduler: StrudelScheduler;
       };
 
-      const audioContext = repl.scheduler.getAudioContext();
-      const pattern = repl.scheduler.pattern;
+      const scheduler = repl.scheduler;
 
-      if (pattern && audioContext) {
-        const now = audioContext.currentTime;
-        const activeHaps = pattern.queryArc(now, now + 0.1);
+      // scheduler.now() is a function that returns current cycle position
+      if (scheduler && typeof scheduler.now === "function" && scheduler.pattern) {
+        const lookahead = 0.1; // Look 0.1 cycles ahead
+        const lookbehind = 0.5; // Keep haps visible for 0.5 cycles
+        const phase = scheduler.now() + lookahead;
 
-        const ranges = activeHaps
-          .filter((hap) => hap.value?.locations)
-          .flatMap((hap) => hap.value?.locations ?? []);
-
-        if (ranges.length > 0) {
-          highlightCallback?.(ranges);
+        if (lastFrame === null) {
+          lastFrame = phase;
+          animationFrameId = requestAnimationFrame(loop);
+          return;
         }
+
+        // Query the pattern for new haps (like Strudel's Drawer)
+        const queryStart = Math.max(lastFrame, phase - 1 / 10);
+        const newHaps = scheduler.pattern.queryArc(queryStart, phase);
+        lastFrame = phase;
+
+        // Accumulate visible haps and filter out old ones
+        const currentTime = phase - lookahead;
+        visibleHaps = visibleHaps
+          .filter((h) => {
+            // Keep haps that are still within visible window
+            const endTime = h.endClipped ?? h.whole.end;
+            return endTime >= currentTime - lookbehind;
+          })
+          .concat(newHaps.filter((h) => h.hasOnset?.() ?? true));
+
+        // Filter for currently active haps and extract locations
+        const ranges = visibleHaps
+          .filter((hap) => {
+            // Check if hap has location data
+            const hasLocation = extractLocations(hap).length > 0;
+            // Check if hap is active at current time
+            const isActive = hap.isActive
+              ? hap.isActive(currentTime)
+              : hap.whole.begin <= currentTime && currentTime < hap.whole.end;
+            return hasLocation && isActive;
+          })
+          .flatMap(extractLocations);
+
+        // Always call callback to update/clear highlights
+        highlightCallback?.(ranges);
       }
     } catch {
       // Ignore errors in highlight loop
