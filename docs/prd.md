@@ -26,6 +26,7 @@ It answers the question: *What if learning music theory was as engaging as playi
 | Database | Postgres on Neon |
 | ORM | Drizzle |
 | Styling | Tailwind CSS |
+| UI Components | shadcn/ui (Radix + Tailwind) |
 | LLM | OpenRouter (user-provided API key) |
 | Hosting | Vercel |
 | License | Open source (AGPL-3.0, respecting Strudel's license) |

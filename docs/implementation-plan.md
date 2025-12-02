@@ -22,6 +22,7 @@ Before starting, ensure:
 | Next.js | ^16.0.0 | Turbopack default, proxy.ts, React 19.2 |
 | React | ^19.2.0 | Bundled with Next 16 |
 | Tailwind CSS | ^4.0.0 | CSS-first config, @import "tailwindcss" |
+| shadcn/ui | latest | Component library (Radix + Tailwind) |
 | Vercel AI SDK | ^5.0.0 | UIMessage types, SSE streaming |
 | TypeScript | ^5.1.0 | Minimum for Next 16 |
 | Drizzle ORM | latest | |
@@ -71,6 +72,11 @@ pnpm add clsx tailwind-merge lucide-react
 
 # AI (v5)
 pnpm add ai@^5.0.0
+
+# UI Components (shadcn/ui)
+pnpm dlx shadcn@latest init --defaults
+pnpm dlx shadcn@latest add button input
+# Add more components as needed: dialog, dropdown-menu, tabs, etc.
 ```
 
 4. Create folder structure:
@@ -257,12 +263,12 @@ interface EditorAdapter {
 ```
 
 **Acceptance Criteria:**
-- [ ] Editor displays with syntax highlighting
-- [ ] Typing code works
-- [ ] Cmd+Enter evaluates code
-- [ ] `s("bd hh sd hh").play()` produces sound
-- [ ] Play/Stop buttons work
-- [ ] BPM can be changed
+- [x] Editor displays with syntax highlighting
+- [x] Typing code works
+- [x] Cmd+Enter evaluates code
+- [x] `s("bd hh sd hh").play()` produces sound
+- [x] Play/Stop buttons work
+- [x] BPM can be changed
 
 ---
 
@@ -1179,15 +1185,13 @@ When implementing each slice:
 
 3. **Test after each file.** Don't move on until it works.
 
-4. **Commit after each slice.** Clean git history.
+4. **Ask clarifying questions** if requirements are ambiguous.
 
-5. **Ask clarifying questions** if requirements are ambiguous.
+5. **Keep code simple.** Avoid over-engineering. This is an MVP.
 
-6. **Keep code simple.** Avoid over-engineering. This is an MVP.
+6. **Match existing patterns.** Look at completed slices for conventions.
 
-7. **Match existing patterns.** Look at completed slices for conventions.
-
-8. **When stuck**, refer back to PRD for context and intent.
+7. **When stuck**, refer back to PRD for context and intent.
 
 ---
 
