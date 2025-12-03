@@ -406,12 +406,12 @@ type Message = {
 3. For code blocks in assistant messages, parse markdown code fences and render with Apply button.
 
 **Acceptance Criteria:**
-- [ ] Split pane shows editor on left, chat on right
-- [ ] Divider can be dragged to resize
-- [ ] Can type and send messages (appear in list)
-- [ ] Code blocks render with syntax highlighting
-- [ ] "Apply" button replaces editor content
-- [ ] Layout looks clean and minimal (dark theme)
+- [x] Split pane shows editor on left, chat on right
+- [x] Divider can be dragged to resize
+- [x] Can type and send messages (appear in list)
+- [x] Code blocks render with syntax highlighting
+- [x] "Apply" button replaces editor content
+- [x] Layout looks clean and minimal (dark theme)
 
 ---
 

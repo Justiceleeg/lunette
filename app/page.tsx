@@ -3,6 +3,8 @@
 import { useState, useCallback, useEffect } from "react";
 import { Editor } from "@/components/editor/Editor";
 import { Controls } from "@/components/editor/Controls";
+import { SplitPane } from "@/components/layout/SplitPane";
+import { Chat } from "@/components/chat/Chat";
 import {
   initStrudel,
   evaluate,
@@ -16,6 +18,7 @@ import {
   onHighlight,
   cleanup,
 } from "@/lib/strudel/runtime";
+import type { Message } from "@/types";
 
 const DEFAULT_CODE = `// Welcome to Lunette!
 // Press Cmd+Enter (or Ctrl+Enter) to evaluate and play
@@ -30,6 +33,10 @@ export default function Home() {
   const [bpm, setBpmState] = useState(120);
   const [error, setError] = useState<string | null>(null);
   const [highlights, setHighlights] = useState<Array<{ start: number; end: number }>>([]);
+
+  // Chat state
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
 
   // Set up error and highlight callbacks
   useEffect(() => {
@@ -99,15 +106,75 @@ export default function Home() {
     setBpm(newBpm);
   }, []);
 
-  return (
-    <main className="flex flex-col h-screen bg-default-background">
-      {/* Editor Area */}
+  // Chat handlers
+  const handleSendMessage = useCallback((content: string) => {
+    // Add user message
+    const userMessage: Message = {
+      id: crypto.randomUUID(),
+      role: "user",
+      content,
+    };
+    setMessages((prev) => [...prev, userMessage]);
+
+    // Simulate assistant response (Slice 4 will add real LLM)
+    setIsLoading(true);
+    setTimeout(() => {
+      const assistantMessage: Message = {
+        id: crypto.randomUUID(),
+        role: "assistant",
+        content: `I hear you! You asked: "${content}"
+
+Here's a simple pattern to try:
+
+\`\`\`strudel
+s("bd hh sd hh").speed(1)
+\`\`\`
+
+Click "Apply" to load it into the editor, then press Cmd+Enter to play!`,
+      };
+      setMessages((prev) => [...prev, assistantMessage]);
+      setIsLoading(false);
+    }, 1000);
+  }, []);
+
+  const handleApplyCode = useCallback((newCode: string) => {
+    setCode(newCode);
+  }, []);
+
+  // Editor pane content
+  const editorPane = (
+    <div className="flex flex-col h-full">
       <div className="flex-1 overflow-hidden">
         <Editor
           value={code}
           onChange={setCode}
           onEvaluate={handleEvaluate}
           highlights={highlights}
+        />
+      </div>
+    </div>
+  );
+
+  // Chat pane content
+  const chatPane = (
+    <Chat
+      messages={messages}
+      onSend={handleSendMessage}
+      onApplyCode={handleApplyCode}
+      isLoading={isLoading}
+    />
+  );
+
+  return (
+    <main className="flex flex-col h-screen bg-default-background">
+      {/* Split Pane Area */}
+      <div className="flex-1 overflow-hidden">
+        <SplitPane
+          left={editorPane}
+          right={chatPane}
+          defaultRatio={0.6}
+          minLeftWidth={300}
+          minRightWidth={280}
         />
       </div>
 
