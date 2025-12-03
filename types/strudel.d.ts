@@ -6,6 +6,13 @@ declare module "@strudel/web" {
     prebake?: () => Promise<void>;
   }
 
+  // samples function for loading audio samples
+  export function samples(
+    sampleMap: string | Record<string, string | string[]>,
+    baseUrl?: string,
+    options?: { tag?: string }
+  ): Promise<void>;
+
   interface Scheduler {
     start: () => void;
     stop: () => void;

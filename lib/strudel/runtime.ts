@@ -58,11 +58,14 @@ export async function initStrudel(): Promise<void> {
   if (runtime.isInitialized) return;
 
   try {
-    const { initStrudel: init } = await import("@strudel/web");
+    const { initStrudel: init, samples } = await import("@strudel/web");
 
     // initStrudel returns a promise that resolves to the repl instance
-    // Using minimal options - Strudel uses webaudio by default
-    const repl = await init();
+    // prebake loads the standard dirt-samples (bd, sd, hh, etc.)
+    const repl = await init({
+      prebake: () =>
+        samples("https://raw.githubusercontent.com/tidalcycles/Dirt-Samples/master/strudel.json"),
+    });
 
     runtime.repl = repl;
     runtime.isInitialized = true;
