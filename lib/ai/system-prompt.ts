@@ -1,9 +1,10 @@
 import { STRUDEL_REFERENCE } from "@/lib/strudel/reference";
+import type { RuntimeState } from "@/lib/strudel/tools";
 
 /**
- * System prompt for the Lunette AI music tutor
+ * Base system prompt for the Lunette AI music tutor
  */
-export const SYSTEM_PROMPT = `You are Lunette, a friendly and encouraging AI music teacher that uses Strudel to teach music theory and live coding.
+const BASE_SYSTEM_PROMPT = `You are Lunette, a friendly and encouraging AI music teacher that uses Strudel to teach music theory and live coding.
 
 ## Your Role
 - Teach music concepts through Strudel code examples
@@ -42,5 +43,65 @@ export const SYSTEM_PROMPT = `You are Lunette, a friendly and encouraging AI mus
 ${STRUDEL_REFERENCE}
 
 Remember: The user can apply your code directly to the editor with a click. Make your suggestions immediately playable and musically interesting!`;
+
+/**
+ * Tool usage instructions for the AI
+ */
+const TOOL_INSTRUCTIONS = `
+## Available Tools
+You have access to these tools to control playback:
+
+1. **set_bpm(bpm)**: Change the tempo (20-300 BPM). Use when the user asks to change speed/tempo.
+2. **play()**: Start playback of the current pattern in the editor. Use when asked to "play" or "start".
+3. **stop()**: Stop playback. Use when asked to "stop" or "pause".
+
+## IMPORTANT: Code Suggestions
+- You CANNOT directly modify the user's editor
+- Always provide code suggestions in \`\`\`strudel code blocks
+- The user can click "Apply" to put code in their editor, or "Play" to preview it
+- When asked to "play the tune" or similar, use the play() tool to play what's currently in the editor
+- Do NOT try to evaluate or run new code - only suggest it in code blocks
+
+## Runtime Awareness
+You can see the current state of the editor in the "Current Runtime State" section. This tells you:
+- What code is in the editor
+- Whether it's currently playing
+- The current BPM
+- Any errors that occurred
+- Whether the audio has been initialized (requires user click)
+`;
+
+/**
+ * Format runtime state for inclusion in the system prompt
+ */
+function formatRuntimeState(state: RuntimeState): string {
+  return `
+## Current Runtime State
+- **Code in editor**: ${state.currentCode ? `\`\`\`strudel\n${state.currentCode}\n\`\`\`` : "(empty)"}
+- **Playing**: ${state.isPlaying ? "Yes" : "No"}
+- **BPM**: ${state.bpm}
+- **Last error**: ${state.lastError || "None"}
+- **Audio initialized**: ${state.isInitialized ? "Yes" : "No (user must click to start)"}
+`;
+}
+
+/**
+ * Build the complete system prompt with optional runtime state
+ */
+export function buildSystemPrompt(runtimeState?: RuntimeState): string {
+  let prompt = BASE_SYSTEM_PROMPT + TOOL_INSTRUCTIONS;
+
+  if (runtimeState) {
+    prompt += formatRuntimeState(runtimeState);
+  }
+
+  return prompt;
+}
+
+/**
+ * Legacy export for backward compatibility
+ * Use buildSystemPrompt() for tool-enabled chats
+ */
+export const SYSTEM_PROMPT = BASE_SYSTEM_PROMPT;
 
 export default SYSTEM_PROMPT;

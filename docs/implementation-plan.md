@@ -639,12 +639,33 @@ Then LLM doesn't need tools to READ state, only to WRITE (play/stop/setBpm). Thi
 **Recommendation:** Start with the simpler approach (state sent with request). Add full tool calling later if needed.
 
 **Acceptance Criteria:**
-- [ ] LLM can see what's in the editor
-- [ ] LLM can check if pattern is playing
-- [ ] LLM can read current BPM
-- [ ] LLM can start/stop playback (with user confirmation)
-- [ ] LLM can change BPM (with user confirmation)
-- [ ] Errors are captured and LLM can help debug
+- [x] LLM can see what's in the editor
+- [x] LLM can check if pattern is playing
+- [x] LLM can read current BPM
+- [x] LLM can start/stop playback (no confirmation needed for playback controls)
+- [x] LLM can change BPM (no confirmation needed for BPM)
+- [x] Errors are captured and LLM can help debug
+
+**Implementation Notes (Actual):**
+
+We implemented using the AI SDK v5 properly with OpenAI:
+1. Runtime state is sent WITH each chat request via `sendMessage` options
+2. LLM can READ state from the system prompt context
+3. LLM can control playback via tools (set_bpm, play, stop) - but NOT modify editor
+4. Tool calls are executed client-side via `onToolCall` callback
+
+**Important Design Decision:** The AI cannot directly modify the editor. Code suggestions are provided in markdown code blocks, and users click "Apply" or "Play" to use them. This prevents unwanted code changes.
+
+Available tools (playback control only):
+- `set_bpm` - Change tempo
+- `play` - Start playback of current editor content
+- `stop` - Stop playback
+
+Files created/modified:
+- `lib/strudel/tools.ts` - RuntimeState type definition
+- `lib/ai/system-prompt.ts` - Added buildSystemPrompt() with runtime state context and tool instructions
+- `app/api/chat/route.ts` - Uses AI SDK's `streamText` with OpenAI provider and tool definitions
+- `app/page.tsx` - Uses `useChat` with `onToolCall` callback for client-side tool execution
 
 ---
 

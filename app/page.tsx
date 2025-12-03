@@ -6,6 +6,7 @@ import { Editor } from "@/components/editor/Editor";
 import { Controls } from "@/components/editor/Controls";
 import { SplitPane } from "@/components/layout/SplitPane";
 import { Chat } from "@/components/chat/Chat";
+import type { RuntimeState } from "@/lib/strudel/tools";
 import {
   initStrudel,
   evaluate,
@@ -18,6 +19,8 @@ import {
   onError,
   onHighlight,
   cleanup,
+  getCurrentCode,
+  getLastError,
 } from "@/lib/strudel/runtime";
 
 const DEFAULT_CODE = `// Welcome to Lunette!
@@ -37,8 +40,76 @@ export default function Home() {
   // Track which code from chat is currently playing
   const [playingChatCode, setPlayingChatCode] = useState<string | null>(null);
 
-  // Chat state using AI SDK v5
-  const { messages, sendMessage, status } = useChat();
+  // Get current runtime state for API calls
+  const getRuntimeState = useCallback((): RuntimeState => {
+    return {
+      currentCode: getCurrentCode() || code,
+      isPlaying: getPlayingState(),
+      bpm: getBpm(),
+      lastError: getLastError()?.message ?? null,
+      isInitialized: isInitialized(),
+    };
+  }, [code]);
+
+  // Chat state using AI SDK
+  const { messages, sendMessage, addToolOutput, status } = useChat({
+    onToolCall: async ({ toolCall }) => {
+      // Type guard for dynamic tools
+      if ("dynamic" in toolCall && toolCall.dynamic) return;
+
+      const { toolName, toolCallId, input } = toolCall;
+
+      try {
+        let output = "";
+
+        switch (toolName) {
+          case "set_bpm": {
+            const { bpm: newBpm } = input as { bpm: number };
+            setBpm(newBpm);
+            setBpmState(newBpm);
+            output = `BPM set to ${newBpm}`;
+            break;
+          }
+
+          case "play": {
+            if (!isInitialized()) {
+              throw new Error("Audio not initialized");
+            }
+            await play();
+            setPlaying(true);
+            output = "Playback started";
+            break;
+          }
+
+          case "stop": {
+            stop();
+            setPlaying(false);
+            output = "Playback stopped";
+            break;
+          }
+
+          default:
+            throw new Error(`Unknown tool: ${toolName}`);
+        }
+
+        addToolOutput({
+          tool: toolName,
+          toolCallId,
+          output,
+        });
+      } catch (err) {
+        const errorMsg = err instanceof Error ? err.message : String(err);
+        setError(errorMsg);
+        addToolOutput({
+          tool: toolName,
+          toolCallId,
+          state: "output-error",
+          errorText: errorMsg,
+        });
+      }
+    },
+  });
+
   const isLoading = status === "streaming" || status === "submitted";
 
   // Set up error callback
@@ -120,37 +191,39 @@ export default function Home() {
   // Chat handlers
   const handleSendMessage = useCallback(
     (content: string) => {
-      sendMessage({
-        parts: [{ type: "text", text: content }],
-      });
+      sendMessage(
+        { text: content },
+        {
+          body: {
+            runtimeState: getRuntimeState(),
+          },
+        }
+      );
     },
-    [sendMessage]
+    [sendMessage, getRuntimeState]
   );
 
   // Play code from a chat code block (preview)
-  const handlePlayChatCode = useCallback(
-    async (chatCode: string) => {
-      try {
-        setError(null);
-        // Clear editor highlights since chat code won't match editor positions
-        setHighlights([]);
+  const handlePlayChatCode = useCallback(async (chatCode: string) => {
+    try {
+      setError(null);
+      // Clear editor highlights since chat code won't match editor positions
+      setHighlights([]);
 
-        // Initialize audio if needed
-        if (!isInitialized()) {
-          await initStrudel();
-        }
-
-        await evaluate(chatCode);
-        setPlayingChatCode(chatCode);
-        setPlaying(true);
-        setHasEvaluated(true);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Evaluation failed");
-        setPlayingChatCode(null);
+      // Initialize audio if needed
+      if (!isInitialized()) {
+        await initStrudel();
       }
-    },
-    []
-  );
+
+      await evaluate(chatCode);
+      setPlayingChatCode(chatCode);
+      setPlaying(true);
+      setHasEvaluated(true);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Evaluation failed");
+      setPlayingChatCode(null);
+    }
+  }, []);
 
   // Stop playing chat code preview
   const handleStopChatCode = useCallback(() => {

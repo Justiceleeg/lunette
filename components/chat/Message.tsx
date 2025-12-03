@@ -12,6 +12,16 @@ interface MessageProps {
   playingCode?: string | null;
 }
 
+interface ToolInvocation {
+  type: "tool-invocation";
+  toolInvocation: {
+    toolName: string;
+    state: "call" | "result" | "partial-call";
+    args?: Record<string, unknown>;
+    result?: unknown;
+  };
+}
+
 // Extract text content from UIMessage parts
 function getMessageContent(message: UIMessage): string {
   if (!message.parts || message.parts.length === 0) {
@@ -22,6 +32,42 @@ function getMessageContent(message: UIMessage): string {
     .filter((part): part is { type: "text"; text: string } => part.type === "text")
     .map((part) => part.text)
     .join("");
+}
+
+// Extract tool invocations from UIMessage parts
+function getToolInvocations(message: UIMessage): ToolInvocation[] {
+  if (!message.parts || message.parts.length === 0) {
+    return [];
+  }
+
+  return message.parts
+    .filter((part) => part.type === "tool-invocation")
+    .map((part) => part as unknown as ToolInvocation);
+}
+
+// Format tool action for display
+function formatToolAction(
+  toolName: string,
+  args?: Record<string, unknown>,
+  result?: unknown
+): string {
+  // Use result if it's a descriptive string
+  if (typeof result === "string" && result.length > 0) {
+    return `✓ ${result}`;
+  }
+
+  switch (toolName) {
+    case "play":
+      return "▶ Playing the current pattern";
+    case "stop":
+      return "⏹ Stopped playback";
+    case "set_bpm": {
+      const bpm = args?.bpm;
+      return `🎵 Set tempo to ${bpm} BPM`;
+    }
+    default:
+      return `✓ ${toolName}`;
+  }
 }
 
 // Parse markdown code blocks from content
@@ -83,6 +129,17 @@ export function Message({
 
   const content = useMemo(() => getMessageContent(message), [message]);
   const parsedContent = useMemo(() => parseCodeBlocks(content), [content]);
+  const toolInvocations = useMemo(() => getToolInvocations(message), [message]);
+
+  // Get completed tool results (not pending calls)
+  const completedTools = toolInvocations.filter(
+    (t) => t.toolInvocation.state === "result"
+  );
+
+  // Don't render empty messages (no text and no completed tools)
+  if (parsedContent.length === 0 && completedTools.length === 0) {
+    return null;
+  }
 
   return (
     <div
@@ -96,6 +153,7 @@ export function Message({
             : "bg-neutral-50 text-default-font"
         )}
       >
+        {/* Render text and code blocks */}
         {parsedContent.map((part, index) =>
           part.type === "code" ? (
             <CodeSuggestion
@@ -114,6 +172,21 @@ export function Message({
               {part.content}
             </p>
           )
+        )}
+
+        {/* Render tool actions */}
+        {completedTools.length > 0 && parsedContent.length === 0 && (
+          <div className="text-sm text-subtext-color">
+            {completedTools.map((t, i) => (
+              <div key={i}>
+                {formatToolAction(
+                  t.toolInvocation.toolName,
+                  t.toolInvocation.args,
+                  t.toolInvocation.result
+                )}
+              </div>
+            ))}
+          </div>
         )}
       </div>
     </div>
