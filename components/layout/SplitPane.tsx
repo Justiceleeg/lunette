@@ -13,18 +13,6 @@ interface SplitPaneProps {
   className?: string;
 }
 
-function getInitialRatio(storageKey: string, defaultRatio: number): number {
-  if (typeof window === "undefined") return defaultRatio;
-  const saved = localStorage.getItem(storageKey);
-  if (saved) {
-    const parsed = parseFloat(saved);
-    if (!isNaN(parsed) && parsed > 0 && parsed < 1) {
-      return parsed;
-    }
-  }
-  return defaultRatio;
-}
-
 export function SplitPane({
   left,
   right,
@@ -35,15 +23,29 @@ export function SplitPane({
   className,
 }: SplitPaneProps) {
   const containerRef = useRef<HTMLDivElement>(null);
-  const [ratio, setRatio] = useState(() =>
-    getInitialRatio(storageKey, defaultRatio)
-  );
+  // Start with defaultRatio to match SSR, then load from localStorage after mount
+  const [ratio, setRatio] = useState(defaultRatio);
   const [isDragging, setIsDragging] = useState(false);
+  const [isHydrated, setIsHydrated] = useState(false);
 
-  // Save ratio to localStorage when it changes
+  // Load saved ratio from localStorage after hydration
   useEffect(() => {
-    localStorage.setItem(storageKey, ratio.toString());
-  }, [ratio, storageKey]);
+    const saved = localStorage.getItem(storageKey);
+    if (saved) {
+      const parsed = parseFloat(saved);
+      if (!isNaN(parsed) && parsed > 0 && parsed < 1) {
+        setRatio(parsed);
+      }
+    }
+    setIsHydrated(true);
+  }, [storageKey]);
+
+  // Save ratio to localStorage when it changes (only after hydration)
+  useEffect(() => {
+    if (isHydrated) {
+      localStorage.setItem(storageKey, ratio.toString());
+    }
+  }, [ratio, storageKey, isHydrated]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();
