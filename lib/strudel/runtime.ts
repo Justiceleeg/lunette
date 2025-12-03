@@ -145,13 +145,16 @@ export function setBpm(bpm: number): void {
   if (runtime.isInitialized && runtime.repl) {
     try {
       const repl = runtime.repl as {
-        setCps: (cps: number) => void;
+        scheduler: {
+          setCps: (cps: number) => void;
+        };
       };
       // Strudel uses cycles per second (CPS), not BPM
       // 1 cycle = 1 bar (4 beats at 4/4), so CPS = BPM / 60 / 4
-      repl.setCps(bpm / 60 / 4);
+      const cps = bpm / 60 / 4;
+      repl.scheduler.setCps(cps);
     } catch {
-      // CPS setter may not be available in all versions
+      // setCps may not be available on all scheduler versions
     }
   }
 }

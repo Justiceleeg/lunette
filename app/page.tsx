@@ -3,7 +3,6 @@
 import { useState, useCallback, useEffect } from "react";
 import { Editor } from "@/components/editor/Editor";
 import { Controls } from "@/components/editor/Controls";
-import { Button } from "@/components/ui/button";
 import {
   initStrudel,
   evaluate,
@@ -19,32 +18,18 @@ import {
 } from "@/lib/strudel/runtime";
 
 const DEFAULT_CODE = `// Welcome to Lunette!
-// Press Cmd+Enter (or Ctrl+Enter) to run the code
-// The pattern will start playing automatically
+// Press Cmd+Enter (or Ctrl+Enter) to evaluate and play
+// Watch the highlights sync with the beat!
 
-// Simple synth pattern - watch the highlights sync with the beat!
 note("c3 e3 g3 b3").sound("sawtooth")`;
 
 export default function Home() {
   const [code, setCode] = useState(DEFAULT_CODE);
-  const [initialized, setInitialized] = useState(false);
   const [playing, setPlaying] = useState(false);
+  const [hasEvaluated, setHasEvaluated] = useState(false);
   const [bpm, setBpmState] = useState(120);
   const [error, setError] = useState<string | null>(null);
   const [highlights, setHighlights] = useState<Array<{ start: number; end: number }>>([]);
-
-  // Initialize Strudel on first user interaction
-  const handleInit = useCallback(async () => {
-    if (initialized) return;
-
-    try {
-      await initStrudel();
-      setInitialized(true);
-      setError(null);
-    } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to initialize audio");
-    }
-  }, [initialized]);
 
   // Set up error and highlight callbacks
   useEffect(() => {
@@ -73,16 +58,19 @@ export default function Home() {
     return () => clearInterval(interval);
   }, []);
 
+  // Evaluate initializes audio on first call (user gesture)
   const handleEvaluate = useCallback(async (codeToEvaluate: string) => {
-    if (!isInitialized()) {
-      setError("Click to start audio first");
-      return;
-    }
-
     try {
       setError(null);
+
+      // Initialize audio on first evaluate (this is the user gesture)
+      if (!isInitialized()) {
+        await initStrudel();
+      }
+
       await evaluate(codeToEvaluate);
-      setPlaying(true); // evaluate auto-plays
+      setHasEvaluated(true);
+      setPlaying(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Evaluation failed");
     }
@@ -107,35 +95,12 @@ export default function Home() {
   }, []);
 
   const handleBpmChange = useCallback((newBpm: number) => {
-    setBpm(newBpm);
     setBpmState(newBpm);
+    setBpm(newBpm);
   }, []);
 
   return (
     <main className="flex flex-col h-screen bg-default-background">
-      {/* Initialization Overlay */}
-      {!initialized && (
-        <div
-          className="absolute inset-0 z-50 flex flex-col items-center justify-center bg-default-background/95 cursor-pointer"
-          onClick={handleInit}
-        >
-          <h1 className="text-heading-1 font-semibold text-default-font mb-4">
-            Lunette
-          </h1>
-          <p className="text-subtext-color mb-8">Learn music through code</p>
-          <Button
-            size="lg"
-            className="px-6 py-3 text-lg"
-            onClick={handleInit}
-          >
-            Click to Start
-          </Button>
-          <p className="text-sm text-subtext-color mt-4">
-            (Audio requires user interaction to start)
-          </p>
-        </div>
-      )}
-
       {/* Editor Area */}
       <div className="flex-1 overflow-hidden">
         <Editor
@@ -149,7 +114,7 @@ export default function Home() {
       {/* Controls Bar */}
       <Controls
         isPlaying={playing}
-        isInitialized={initialized}
+        hasEvaluated={hasEvaluated}
         bpm={bpm}
         onPlay={handlePlay}
         onStop={handleStop}

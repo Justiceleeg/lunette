@@ -1,5 +1,6 @@
 "use client";
 
+import { useState, useEffect } from "react";
 import { Play, Square, RotateCcw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,7 +8,7 @@ import { cn } from "@/lib/utils";
 
 interface ControlsProps {
   isPlaying: boolean;
-  isInitialized: boolean;
+  hasEvaluated: boolean;
   bpm: number;
   onPlay: () => void;
   onStop: () => void;
@@ -18,7 +19,7 @@ interface ControlsProps {
 
 export function Controls({
   isPlaying,
-  isInitialized,
+  hasEvaluated,
   bpm,
   onPlay,
   onStop,
@@ -26,13 +27,30 @@ export function Controls({
   onBpmChange,
   error,
 }: ControlsProps) {
+  // Local state for typing - allows intermediate values
+  const [bpmInput, setBpmInput] = useState(bpm.toString());
+
+  // Sync with external bpm changes
+  useEffect(() => {
+    setBpmInput(bpm.toString());
+  }, [bpm]);
+
+  const applyBpm = () => {
+    const value = parseInt(bpmInput, 10);
+    if (!isNaN(value) && value >= 20 && value <= 300) {
+      onBpmChange(value);
+    } else {
+      // Reset to current valid bpm if invalid
+      setBpmInput(bpm.toString());
+    }
+  };
   return (
     <div className="flex items-center justify-between px-4 py-2 bg-card border-t border-border">
       <div className="flex items-center gap-2">
-        {/* Play/Stop Button */}
+        {/* Play/Stop Button - disabled until pattern has been evaluated */}
         <Button
           onClick={isPlaying ? onStop : onPlay}
-          disabled={!isInitialized}
+          disabled={!hasEvaluated}
           size="icon"
           className={cn(
             "w-10 h-10",
@@ -49,16 +67,15 @@ export function Controls({
           )}
         </Button>
 
-        {/* Evaluate Button */}
+        {/* Evaluate Button - initializes audio on first click */}
         <Button
           onClick={onEvaluate}
-          disabled={!isInitialized}
           variant="secondary"
           className="h-10 gap-2"
           title="Evaluate (Cmd+Enter)"
         >
           <RotateCcw className="w-4 h-4" />
-          <span className="hidden sm:inline">Run</span>
+          <span className="hidden sm:inline">Evaluate</span>
           <kbd className="hidden sm:inline text-xs text-muted-foreground ml-1">
             {"\u2318"}+Enter
           </kbd>
@@ -75,14 +92,16 @@ export function Controls({
           type="number"
           min={20}
           max={300}
-          value={bpm}
-          onChange={(e) => {
-            const value = parseInt(e.target.value, 10);
-            if (!isNaN(value) && value >= 20 && value <= 300) {
-              onBpmChange(value);
+          value={bpmInput}
+          onChange={(e) => setBpmInput(e.target.value)}
+          onBlur={applyBpm}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              applyBpm();
+              e.currentTarget.blur();
             }
           }}
-          className="w-16 h-8 text-center [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+          className="w-20 h-8 text-center"
         />
       </div>
 
