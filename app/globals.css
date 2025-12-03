@@ -163,9 +163,10 @@
 
 @custom-variant mobile (@media (max-width: 767px));
 
-/* CodeMirror Strudel highlight */
+/* CodeMirror Strudel highlight - white box like strudel.cc */
 .cm-strudel-highlight {
-  background-color: rgba(5, 162, 194, 0.25);
+  background-color: rgba(255, 255, 255, 0.15);
+  outline: 1.5px solid rgba(255, 255, 255, 0.9);
   border-radius: 2px;
 }
 

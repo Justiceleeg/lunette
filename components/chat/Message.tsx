@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo } from "react";
+import ReactMarkdown from "react-markdown";
 import { cn } from "@/lib/utils";
 import { CodeSuggestion } from "./CodeSuggestion";
 import type { UIMessage } from "ai";
@@ -165,12 +166,16 @@ export function Message({
               isPlaying={playingCode === part.content}
             />
           ) : (
-            <p
+            <div
               key={index}
-              className="text-sm leading-relaxed whitespace-pre-wrap"
+              className="text-sm leading-relaxed [&_p]:my-1 [&_ul]:my-1 [&_ol]:my-1 [&_li]:my-0
+                [&_ul]:list-disc [&_ul]:pl-4 [&_ol]:list-decimal [&_ol]:pl-4
+                [&_strong]:font-semibold [&_a]:text-brand-600 [&_a]:underline
+                [&_h1]:text-lg [&_h1]:font-bold [&_h2]:text-base [&_h2]:font-semibold
+                [&_code]:bg-neutral-100 [&_code]:px-1 [&_code]:rounded [&_code]:text-xs"
             >
-              {part.content}
-            </p>
+              <ReactMarkdown>{part.content}</ReactMarkdown>
+            </div>
           )
         )}
 
