@@ -5,19 +5,23 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Message } from "./Message";
 import { cn } from "@/lib/utils";
-import type { Message as MessageType } from "@/types";
+import type { UIMessage } from "ai";
 
 interface ChatProps {
-  messages: MessageType[];
+  messages: UIMessage[];
   onSend: (message: string) => void;
-  onApplyCode: (code: string) => void;
+  onPlayCode?: (code: string) => void;
+  onStopCode?: () => void;
+  playingCode?: string | null;
   isLoading?: boolean;
 }
 
 export function Chat({
   messages,
   onSend,
-  onApplyCode,
+  onPlayCode,
+  onStopCode,
+  playingCode,
   isLoading = false,
 }: ChatProps) {
   const [input, setInput] = useState("");
@@ -76,7 +80,9 @@ export function Chat({
               <Message
                 key={message.id}
                 message={message}
-                onApplyCode={onApplyCode}
+                onPlayCode={onPlayCode}
+                onStopCode={onStopCode}
+                playingCode={playingCode}
               />
             ))}
             {isLoading && (

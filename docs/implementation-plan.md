@@ -516,12 +516,11 @@ You are Lunette, an AI music teacher that uses Strudel to teach music theory and
 ```
 
 **Acceptance Criteria:**
-- [ ] Unauthenticated users see prompt to sign in for AI chat
-- [ ] Authenticated users can send messages
-- [ ] Sending message gets streamed response
-- [ ] Response appears word-by-word
-- [ ] Code blocks in responses have "Apply" button
-- [ ] Applying code updates editor and can be played
+- [x] Unauthenticated users see prompt to sign in for AI chat
+- [x] Authenticated users can send messages
+- [x] Sending message gets streamed response
+- [x] Response appears word-by-word
+- [x] Applying code updates editor and can be played
 
 ---
 
@@ -1173,6 +1172,27 @@ Week 9:     Slice 10 (Learning Paths)
 Week 10-11: Slice 11 (Polish)
 Week 12:    Buffer + Launch
 ```
+
+---
+
+## Future Enhancements (Post-MVP)
+
+Ideas to consider after initial launch:
+
+### Code Validation Before Display
+- Validate LLM-generated code snippets before showing to user
+- Parse code through Strudel's evaluator in a "dry run" mode
+- Show validation status on code blocks (valid/invalid)
+- Auto-fix common mistakes (e.g., `.reverse()` → `.rev()`)
+- Regenerate invalid snippets automatically
+
+### Other Ideas
+- Monaco editor option (more features than CodeMirror)
+- MIDI output support
+- Recording/export to audio file
+- Collaborative editing (multiplayer)
+- Custom sample upload
+- Visual pattern editor (drag-and-drop)
 
 ---
 

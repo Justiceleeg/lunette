@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect } from "react";
+import { useChat } from "@ai-sdk/react";
 import { Editor } from "@/components/editor/Editor";
 import { Controls } from "@/components/editor/Controls";
 import { SplitPane } from "@/components/layout/SplitPane";
@@ -18,7 +19,6 @@ import {
   onHighlight,
   cleanup,
 } from "@/lib/strudel/runtime";
-import type { Message } from "@/types";
 
 const DEFAULT_CODE = `// Welcome to Lunette!
 // Press Cmd+Enter (or Ctrl+Enter) to evaluate and play
@@ -34,24 +34,33 @@ export default function Home() {
   const [error, setError] = useState<string | null>(null);
   const [highlights, setHighlights] = useState<Array<{ start: number; end: number }>>([]);
 
-  // Chat state
-  const [messages, setMessages] = useState<Message[]>([]);
-  const [isLoading, setIsLoading] = useState(false);
+  // Track which code from chat is currently playing
+  const [playingChatCode, setPlayingChatCode] = useState<string | null>(null);
 
-  // Set up error and highlight callbacks
+  // Chat state using AI SDK v5
+  const { messages, sendMessage, status } = useChat();
+  const isLoading = status === "streaming" || status === "submitted";
+
+  // Set up error callback
   useEffect(() => {
     onError((err) => {
       setError(err.message);
-    });
-
-    onHighlight((ranges) => {
-      setHighlights(ranges);
     });
 
     return () => {
       cleanup();
     };
   }, []);
+
+  // Set up highlight callback - only update when not playing chat code
+  useEffect(() => {
+    onHighlight((ranges) => {
+      // Don't show highlights when playing from chat (positions won't match editor)
+      if (!playingChatCode) {
+        setHighlights(ranges);
+      }
+    });
+  }, [playingChatCode]);
 
   // Sync state with runtime
   useEffect(() => {
@@ -78,6 +87,8 @@ export default function Home() {
       await evaluate(codeToEvaluate);
       setHasEvaluated(true);
       setPlaying(true);
+      // Clear chat preview playing state when evaluating from editor
+      setPlayingChatCode(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Evaluation failed");
     }
@@ -107,38 +118,46 @@ export default function Home() {
   }, []);
 
   // Chat handlers
-  const handleSendMessage = useCallback((content: string) => {
-    // Add user message
-    const userMessage: Message = {
-      id: crypto.randomUUID(),
-      role: "user",
-      content,
-    };
-    setMessages((prev) => [...prev, userMessage]);
+  const handleSendMessage = useCallback(
+    (content: string) => {
+      sendMessage({
+        parts: [{ type: "text", text: content }],
+      });
+    },
+    [sendMessage]
+  );
 
-    // Simulate assistant response (Slice 4 will add real LLM)
-    setIsLoading(true);
-    setTimeout(() => {
-      const assistantMessage: Message = {
-        id: crypto.randomUUID(),
-        role: "assistant",
-        content: `I hear you! You asked: "${content}"
+  // Play code from a chat code block (preview)
+  const handlePlayChatCode = useCallback(
+    async (chatCode: string) => {
+      try {
+        setError(null);
+        // Clear editor highlights since chat code won't match editor positions
+        setHighlights([]);
 
-Here's a simple pattern to try:
+        // Initialize audio if needed
+        if (!isInitialized()) {
+          await initStrudel();
+        }
 
-\`\`\`strudel
-s("bd hh sd hh").speed(1)
-\`\`\`
+        await evaluate(chatCode);
+        setPlayingChatCode(chatCode);
+        setPlaying(true);
+        setHasEvaluated(true);
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Evaluation failed");
+        setPlayingChatCode(null);
+      }
+    },
+    []
+  );
 
-Click "Apply" to load it into the editor, then press Cmd+Enter to play!`,
-      };
-      setMessages((prev) => [...prev, assistantMessage]);
-      setIsLoading(false);
-    }, 1000);
-  }, []);
-
-  const handleApplyCode = useCallback((newCode: string) => {
-    setCode(newCode);
+  // Stop playing chat code preview
+  const handleStopChatCode = useCallback(() => {
+    stop();
+    setPlayingChatCode(null);
+    setPlaying(false);
+    setHighlights([]);
   }, []);
 
   // Editor pane content
@@ -160,7 +179,9 @@ Click "Apply" to load it into the editor, then press Cmd+Enter to play!`,
     <Chat
       messages={messages}
       onSend={handleSendMessage}
-      onApplyCode={handleApplyCode}
+      onPlayCode={handlePlayChatCode}
+      onStopCode={handleStopChatCode}
+      playingCode={playingChatCode}
       isLoading={isLoading}
     />
   );

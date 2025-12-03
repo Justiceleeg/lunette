@@ -3,11 +3,25 @@
 import { useMemo } from "react";
 import { cn } from "@/lib/utils";
 import { CodeSuggestion } from "./CodeSuggestion";
-import type { Message as MessageType } from "@/types";
+import type { UIMessage } from "ai";
 
 interface MessageProps {
-  message: MessageType;
-  onApplyCode: (code: string) => void;
+  message: UIMessage;
+  onPlayCode?: (code: string) => void;
+  onStopCode?: () => void;
+  playingCode?: string | null;
+}
+
+// Extract text content from UIMessage parts
+function getMessageContent(message: UIMessage): string {
+  if (!message.parts || message.parts.length === 0) {
+    return "";
+  }
+
+  return message.parts
+    .filter((part): part is { type: "text"; text: string } => part.type === "text")
+    .map((part) => part.text)
+    .join("");
 }
 
 // Parse markdown code blocks from content
@@ -59,13 +73,16 @@ function parseCodeBlocks(
   return parts;
 }
 
-export function Message({ message, onApplyCode }: MessageProps) {
+export function Message({
+  message,
+  onPlayCode,
+  onStopCode,
+  playingCode,
+}: MessageProps) {
   const isUser = message.role === "user";
 
-  const parsedContent = useMemo(
-    () => parseCodeBlocks(message.content),
-    [message.content]
-  );
+  const content = useMemo(() => getMessageContent(message), [message]);
+  const parsedContent = useMemo(() => parseCodeBlocks(content), [content]);
 
   return (
     <div
@@ -85,7 +102,9 @@ export function Message({ message, onApplyCode }: MessageProps) {
               key={index}
               code={part.content}
               language={part.language}
-              onApply={onApplyCode}
+              onPlay={onPlayCode}
+              onStop={onStopCode}
+              isPlaying={playingCode === part.content}
             />
           ) : (
             <p

@@ -1,6 +1,2 @@
-export type Message = {
-  id: string;
-  role: "user" | "assistant";
-  content: string;
-  codeBlocks?: Array<{ code: string; language: string }>;
-};
+// Re-export UIMessage from AI SDK v5 as our Message type
+export type { UIMessage as Message } from "ai";
