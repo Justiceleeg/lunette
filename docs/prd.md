@@ -150,9 +150,11 @@ Users can ask pedagogical questions at any time, even outside formal lessons.
 
 ### LLM Configuration
 
-Users provide their own API key via OpenRouter. This keeps costs on the user while providing access to multiple models.
+Lunette provides AI chat out of the box using a server-side OpenRouter API key. Users don't need to configure anything.
 
-Future consideration: Self-hosted open-source LLM for a fully free tier.
+- Single model (chosen by Lunette team)
+- Requires authentication to use AI chat
+- No rate limiting for MVP
 
 ### Tool Calling
 
@@ -410,7 +412,7 @@ Schema defined in `drizzle/schema.ts`. Migrations via `drizzle-kit`.
 - [ ] Gallery browse with inline playback
 - [ ] Learning paths UI (selectable paths/topics)
 - [ ] Progress tracking (per-topic completion)
-- [ ] Settings (API key input)
+- [ ] Settings (user preferences)
 - [ ] Dark mode, minimal design
 
 ### Out of Scope (Post-MVP)
@@ -469,7 +471,7 @@ Schema defined in `drizzle/schema.ts`. Migrations via `drizzle-kit`.
 | Question | Decision |
 |----------|----------|
 | **Strudel API in context** | Use `@strudel/reference` npm package to generate a condensed API reference (~5-8k tokens) for the system prompt. Includes function signatures, descriptions, and examples. No RAG needed for MVP. |
-| **Rate limiting** | Not a concern — users provide their own OpenRouter API keys. Add client-side safeguard (max messages/minute) to prevent runaway calls from bugs. |
+| **Rate limiting** | Deferred post-MVP. AI chat requires authentication, which provides natural friction. |
 | **Offline support** | Out of scope. Without AI, it's just Strudel. |
 | **Audio export** | Post-MVP. Users can screen-record for now. |
 

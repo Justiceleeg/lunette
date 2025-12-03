@@ -124,6 +124,7 @@ DATABASE_URL=
 BETTER_AUTH_SECRET=
 GITHUB_CLIENT_ID=
 GITHUB_CLIENT_SECRET=
+OPENROUTER_API_KEY=
 ```
 
 6. Tailwind v4 setup — verify `src/app/globals.css` uses new syntax:
@@ -425,8 +426,9 @@ type Message = {
 ### `src/app/api/chat/route.ts`
 ```typescript
 // POST handler
+// - Requires authentication (return 401 if not logged in)
 // - Receives messages array
-// - Gets API key from request headers or user session
+// - Uses server-side OPENROUTER_API_KEY
 // - Calls OpenRouter with streaming
 // - Returns streamed response
 ```
@@ -450,8 +452,8 @@ type Message = {
 ### `src/app/(main)/settings/page.tsx`
 ```typescript
 // Settings page
-// - API key input (stored in localStorage)
-// - Model selection (optional)
+// - User preferences (future: theme, etc.)
+// - Account info display
 ```
 
 ### Update `src/app/(main)/page.tsx`
@@ -481,17 +483,16 @@ return result.toDataStreamResponse();
    - Convert between them as needed
 
 3. API key handling:
-   - Store in localStorage on client
-   - Send in `Authorization` header or custom header
-   - Never log or persist on server
+   - Use server-side `OPENROUTER_API_KEY` environment variable
+   - Require authentication before allowing chat requests
 
-4. For OpenRouter, create a custom provider or use fetch directly:
+4. For OpenRouter, create a custom provider:
 ```typescript
 import { createOpenAI } from '@ai-sdk/openai';
 
 const openrouter = createOpenAI({
   baseURL: 'https://openrouter.ai/api/v1',
-  apiKey: userApiKey, // from request header
+  apiKey: process.env.OPENROUTER_API_KEY!,
 });
 ```
 
@@ -515,12 +516,12 @@ You are Lunette, an AI music teacher that uses Strudel to teach music theory and
 ```
 
 **Acceptance Criteria:**
-- [ ] Can enter API key in settings
+- [ ] Unauthenticated users see prompt to sign in for AI chat
+- [ ] Authenticated users can send messages
 - [ ] Sending message gets streamed response
 - [ ] Response appears word-by-word
 - [ ] Code blocks in responses have "Apply" button
 - [ ] Applying code updates editor and can be played
-- [ ] Error handling for invalid API key
 
 ---
 
