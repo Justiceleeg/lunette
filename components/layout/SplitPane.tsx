@@ -23,29 +23,33 @@ export function SplitPane({
   className,
 }: SplitPaneProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const isHydratedRef = useRef(false);
   // Start with defaultRatio to match SSR, then load from localStorage after mount
   const [ratio, setRatio] = useState(defaultRatio);
   const [isDragging, setIsDragging] = useState(false);
-  const [isHydrated, setIsHydrated] = useState(false);
 
   // Load saved ratio from localStorage after hydration
+  // This is a valid pattern for SSR hydration - must happen in effect, not state initializer
   useEffect(() => {
-    const saved = localStorage.getItem(storageKey);
-    if (saved) {
-      const parsed = parseFloat(saved);
-      if (!isNaN(parsed) && parsed > 0 && parsed < 1) {
-        setRatio(parsed);
+    if (!isHydratedRef.current) {
+      isHydratedRef.current = true;
+      const saved = localStorage.getItem(storageKey);
+      if (saved) {
+        const parsed = parseFloat(saved);
+        if (!isNaN(parsed) && parsed > 0 && parsed < 1) {
+          // eslint-disable-next-line react-hooks/set-state-in-effect
+          setRatio(parsed);
+        }
       }
     }
-    setIsHydrated(true);
   }, [storageKey]);
 
   // Save ratio to localStorage when it changes (only after hydration)
   useEffect(() => {
-    if (isHydrated) {
+    if (isHydratedRef.current) {
       localStorage.setItem(storageKey, ratio.toString());
     }
-  }, [ratio, storageKey, isHydrated]);
+  }, [ratio, storageKey]);
 
   const handleMouseDown = useCallback((e: React.MouseEvent) => {
     e.preventDefault();

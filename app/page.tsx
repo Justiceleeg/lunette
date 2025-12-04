@@ -5,6 +5,7 @@ import { useChat } from "@ai-sdk/react";
 import { Editor } from "@/components/editor/Editor";
 import { Controls } from "@/components/editor/Controls";
 import { SplitPane } from "@/components/layout/SplitPane";
+import { Header } from "@/components/layout/Header";
 import { Chat } from "@/components/chat/Chat";
 import type { RuntimeState, EditorSelection } from "@/lib/strudel/tools";
 import {
@@ -267,6 +268,9 @@ export default function Home() {
 
   return (
     <main className="flex flex-col h-screen bg-default-background">
+      {/* Header */}
+      <Header />
+
       {/* Split Pane Area */}
       <div className="flex-1 overflow-hidden">
         <SplitPane
