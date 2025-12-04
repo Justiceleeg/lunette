@@ -75,7 +75,7 @@ You can see the current state of the editor in the "Current Runtime State" secti
  * Format runtime state for inclusion in the system prompt
  */
 function formatRuntimeState(state: RuntimeState): string {
-  return `
+  let prompt = `
 ## Current Runtime State
 - **Code in editor**: ${state.currentCode ? `\`\`\`strudel\n${state.currentCode}\n\`\`\`` : "(empty)"}
 - **Playing**: ${state.isPlaying ? "Yes" : "No"}
@@ -83,6 +83,23 @@ function formatRuntimeState(state: RuntimeState): string {
 - **Last error**: ${state.lastError || "None"}
 - **Audio initialized**: ${state.isInitialized ? "Yes" : "No (user must click to start)"}
 `;
+
+  // Add selection context if present
+  if (state.selection) {
+    const lineInfo = state.selection.startLine === state.selection.endLine
+      ? `line ${state.selection.startLine}`
+      : `lines ${state.selection.startLine}-${state.selection.endLine}`;
+    prompt += `
+## User's Current Selection
+The user has selected code on ${lineInfo}:
+\`\`\`strudel
+${state.selection.text}
+\`\`\`
+Consider this selection as context for their question - they may be asking about this specific code. However, if the selection doesn't seem relevant to their question, you can ignore it.
+`;
+  }
+
+  return prompt;
 }
 
 /**

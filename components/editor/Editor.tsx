@@ -8,11 +8,13 @@ import { oneDark } from "@codemirror/theme-one-dark";
 import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { StateField, StateEffect } from "@codemirror/state";
 import { basicSetup } from "codemirror";
+import type { EditorSelection } from "@/lib/strudel/tools";
 
 interface EditorProps {
   value: string;
   onChange: (value: string) => void;
   onEvaluate: (code: string) => void;
+  onSelectionChange?: (selection: EditorSelection | null) => void;
   highlights?: Array<{ start: number; end: number }>;
 }
 
@@ -54,18 +56,20 @@ const highlightField = StateField.define<DecorationSet>({
   provide: (f) => EditorView.decorations.from(f),
 });
 
-export function Editor({ value, onChange, onEvaluate, highlights = [] }: EditorProps) {
+export function Editor({ value, onChange, onEvaluate, onSelectionChange, highlights = [] }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const onEvaluateRef = useRef(onEvaluate);
   const onChangeRef = useRef(onChange);
+  const onSelectionChangeRef = useRef(onSelectionChange);
   const initialValueRef = useRef(value);
 
   // Keep refs updated
   useEffect(() => {
     onEvaluateRef.current = onEvaluate;
     onChangeRef.current = onChange;
-  }, [onEvaluate, onChange]);
+    onSelectionChangeRef.current = onSelectionChange;
+  }, [onEvaluate, onChange, onSelectionChange]);
 
   // Create evaluate keymap
   const evaluateKeymap = useCallback(() => {
@@ -88,6 +92,22 @@ export function Editor({ value, onChange, onEvaluate, highlights = [] }: EditorP
     const updateListener = EditorView.updateListener.of((update) => {
       if (update.docChanged) {
         onChangeRef.current(update.state.doc.toString());
+      }
+
+      // Handle selection changes
+      if (update.selectionSet && onSelectionChangeRef.current) {
+        const { from, to } = update.state.selection.main;
+        if (from !== to) {
+          // There's a selection - compute line numbers and text
+          const doc = update.state.doc;
+          const text = doc.sliceString(from, to);
+          const startLine = doc.lineAt(from).number;
+          const endLine = doc.lineAt(to).number;
+          onSelectionChangeRef.current({ text, startLine, endLine });
+        } else {
+          // No selection (just a cursor)
+          onSelectionChangeRef.current(null);
+        }
       }
     });
 

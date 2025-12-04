@@ -6,7 +6,7 @@ import { Editor } from "@/components/editor/Editor";
 import { Controls } from "@/components/editor/Controls";
 import { SplitPane } from "@/components/layout/SplitPane";
 import { Chat } from "@/components/chat/Chat";
-import type { RuntimeState } from "@/lib/strudel/tools";
+import type { RuntimeState, EditorSelection } from "@/lib/strudel/tools";
 import {
   initStrudel,
   evaluate,
@@ -40,6 +40,9 @@ export default function Home() {
   // Track which code from chat is currently playing
   const [playingChatCode, setPlayingChatCode] = useState<string | null>(null);
 
+  // Track editor selection for AI context
+  const [selection, setSelection] = useState<EditorSelection | null>(null);
+
   // Get current runtime state for API calls
   const getRuntimeState = useCallback((): RuntimeState => {
     return {
@@ -48,8 +51,9 @@ export default function Home() {
       bpm: getBpm(),
       lastError: getLastError()?.message ?? null,
       isInitialized: isInitialized(),
+      selection,
     };
-  }, [code]);
+  }, [code, selection]);
 
   // Chat state using AI SDK
   const { messages, sendMessage, addToolOutput, status } = useChat({
@@ -241,6 +245,7 @@ export default function Home() {
           value={code}
           onChange={setCode}
           onEvaluate={handleEvaluate}
+          onSelectionChange={setSelection}
           highlights={highlights}
         />
       </div>
@@ -256,6 +261,7 @@ export default function Home() {
       onStopCode={handleStopChatCode}
       playingCode={playingChatCode}
       isLoading={isLoading}
+      selection={selection}
     />
   );
 
