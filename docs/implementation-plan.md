@@ -986,12 +986,12 @@ export async function generateMetadata({ params }): Promise<Metadata> {
 3. Performance: Don't initialize Strudel until first play click (lazy init).
 
 **Acceptance Criteria:**
-- [ ] Gallery shows grid of public patterns
-- [ ] Can play pattern inline (without leaving page)
-- [ ] Only one pattern plays at a time
-- [ ] Currently playing pattern is visually indicated
-- [ ] Can click to view full pattern page
-- [ ] Can fork from gallery (if logged in)
+- [x] Gallery shows grid of public patterns
+- [x] Can play pattern inline (without leaving page)
+- [x] Only one pattern plays at a time
+- [x] Currently playing pattern is visually indicated
+- [x] Can click to view full pattern page
+- [x] Can fork from gallery (if logged in)
 
 ---
 
