@@ -921,12 +921,12 @@ export async function generateMetadata({ params }): Promise<Metadata> {
 ```
 
 **Acceptance Criteria:**
-- [ ] Can make pattern public
-- [ ] Public URL is shareable
-- [ ] Visiting URL shows pattern with play button
-- [ ] Can fork a pattern (logged in)
-- [ ] Fork shows attribution to original
-- [ ] Fork chain is preserved (fork of fork works)
+- [x] Can make pattern public
+- [x] Public URL is shareable
+- [x] Visiting URL shows pattern with play button
+- [x] Can fork a pattern (logged in)
+- [x] Fork shows attribution to original
+- [x] Fork chain is preserved (fork of fork works)
 
 ---
 

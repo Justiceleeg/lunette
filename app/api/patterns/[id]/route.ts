@@ -1,6 +1,6 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { patterns } from "@/lib/db/schema";
+import { patterns, users } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { headers } from "next/headers";
 
@@ -14,15 +14,26 @@ export async function GET(req: Request, { params }: RouteParams) {
       headers: headersList,
     });
 
-    const [pattern] = await db
-      .select()
+    // Get pattern with author info
+    const result = await db
+      .select({
+        pattern: patterns,
+        author: {
+          id: users.id,
+          name: users.name,
+          image: users.image,
+        },
+      })
       .from(patterns)
+      .leftJoin(users, eq(patterns.authorId, users.id))
       .where(eq(patterns.id, id))
       .limit(1);
 
-    if (!pattern) {
+    if (result.length === 0 || !result[0].pattern) {
       return Response.json({ error: "Pattern not found" }, { status: 404 });
     }
+
+    const { pattern, author } = result[0];
 
     // If pattern is private, check if user is the author
     if (!pattern.isPublic) {
@@ -31,7 +42,57 @@ export async function GET(req: Request, { params }: RouteParams) {
       }
     }
 
-    return Response.json({ pattern });
+    // Get original author info if this is a fork
+    let originalAuthor = null;
+    if (pattern.originalAuthorId) {
+      const [origAuthor] = await db
+        .select({
+          id: users.id,
+          name: users.name,
+          image: users.image,
+        })
+        .from(users)
+        .where(eq(users.id, pattern.originalAuthorId))
+        .limit(1);
+      originalAuthor = origAuthor || null;
+    }
+
+    // Get forked from pattern info if this is a fork
+    let forkedFrom = null;
+    if (pattern.forkedFromId) {
+      const forkedResult = await db
+        .select({
+          pattern: {
+            id: patterns.id,
+            name: patterns.name,
+          },
+          author: {
+            id: users.id,
+            name: users.name,
+          },
+        })
+        .from(patterns)
+        .leftJoin(users, eq(patterns.authorId, users.id))
+        .where(eq(patterns.id, pattern.forkedFromId))
+        .limit(1);
+
+      if (forkedResult.length > 0) {
+        forkedFrom = {
+          id: forkedResult[0].pattern.id,
+          name: forkedResult[0].pattern.name,
+          author: forkedResult[0].author,
+        };
+      }
+    }
+
+    return Response.json({
+      pattern: {
+        ...pattern,
+        author,
+        originalAuthor,
+        forkedFrom,
+      }
+    });
   } catch (error) {
     console.error("Error fetching pattern:", error);
     return Response.json(

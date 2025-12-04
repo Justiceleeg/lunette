@@ -47,7 +47,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    const { name, code, isPublic = false, forkedFromId, originalAuthorId } = body;
+    const { name, code, isPublic = false, forkedFromId } = body;
 
     if (!name || typeof name !== "string" || name.trim() === "") {
       return Response.json({ error: "Name is required" }, { status: 400 });
@@ -57,6 +57,22 @@ export async function POST(req: Request) {
       return Response.json({ error: "Code is required" }, { status: 400 });
     }
 
+    // Determine originalAuthorId when forking
+    let resolvedOriginalAuthorId: string | null = null;
+    if (forkedFromId) {
+      const [parentPattern] = await db
+        .select()
+        .from(patterns)
+        .where(eq(patterns.id, forkedFromId))
+        .limit(1);
+
+      if (parentPattern) {
+        // If parent has an originalAuthorId, use that (preserves chain)
+        // Otherwise, use the parent's authorId as the original author
+        resolvedOriginalAuthorId = parentPattern.originalAuthorId || parentPattern.authorId;
+      }
+    }
+
     const newPattern = {
       id: nanoid(),
       name: name.trim(),
@@ -64,7 +80,7 @@ export async function POST(req: Request) {
       authorId: session.user.id,
       isPublic: Boolean(isPublic),
       forkedFromId: forkedFromId || null,
-      originalAuthorId: originalAuthorId || null,
+      originalAuthorId: resolvedOriginalAuthorId,
       createdAt: new Date(),
       updatedAt: new Date(),
     };

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Play, Square, RotateCcw, Save, Circle } from "lucide-react";
+import { Play, Square, RotateCcw, Save, Circle, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -15,9 +15,11 @@ interface ControlsProps {
   onEvaluate: () => void;
   onBpmChange: (bpm: number) => void;
   onSave?: () => void;
+  onShare?: () => void;
   error?: string | null;
   hasUnsavedChanges?: boolean;
   isAuthenticated?: boolean;
+  hasCurrentPattern?: boolean;
   patternSelector?: React.ReactNode;
 }
 
@@ -30,9 +32,11 @@ export function Controls({
   onEvaluate,
   onBpmChange,
   onSave,
+  onShare,
   error,
   hasUnsavedChanges,
   isAuthenticated,
+  hasCurrentPattern,
   patternSelector,
 }: ControlsProps) {
   // Local state for typing - allows intermediate values
@@ -106,6 +110,20 @@ export function Controls({
             {hasUnsavedChanges && (
               <Circle className="h-2 w-2 fill-current text-amber-500" />
             )}
+          </Button>
+        )}
+
+        {/* Share Button - only show when authenticated and has a saved pattern */}
+        {isAuthenticated && hasCurrentPattern && onShare && (
+          <Button
+            onClick={onShare}
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            title="Share pattern"
+          >
+            <Share2 className="h-4 w-4" />
+            <span className="hidden sm:inline">Share</span>
           </Button>
         )}
       </div>

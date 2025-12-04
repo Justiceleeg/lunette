@@ -8,6 +8,7 @@ import { SplitPane } from "@/components/layout/SplitPane";
 import { Header } from "@/components/layout/Header";
 import { Chat } from "@/components/chat/Chat";
 import { SaveDialog, type Pattern } from "@/components/patterns/SaveDialog";
+import { ShareDialog } from "@/components/patterns/ShareDialog";
 import { PatternList } from "@/components/patterns/PatternList";
 import { useSession } from "@/lib/auth-client";
 import type { RuntimeState, EditorSelection } from "@/lib/strudel/tools";
@@ -50,6 +51,7 @@ export default function Home() {
   // Pattern save/load state
   const [currentPattern, setCurrentPattern] = useState<Pattern | null>(null);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const [shareDialogOpen, setShareDialogOpen] = useState(false);
   const { data: session } = useSession();
   const isAuthenticated = !!session?.user;
 
@@ -141,6 +143,15 @@ export default function Home() {
     return () => {
       cleanup();
     };
+  }, []);
+
+  // Load code from sessionStorage (from pattern page "Open in Editor")
+  useEffect(() => {
+    const loadCode = sessionStorage.getItem("lunette_load_code");
+    if (loadCode) {
+      setCode(loadCode);
+      sessionStorage.removeItem("lunette_load_code");
+    }
   }, []);
 
   // Set up highlight callback - only update when not playing chat code
@@ -270,6 +281,12 @@ export default function Home() {
     }
   }, [currentPattern]);
 
+  const handleVisibilityChange = useCallback((isPublic: boolean) => {
+    if (currentPattern) {
+      setCurrentPattern({ ...currentPattern, isPublic });
+    }
+  }, [currentPattern]);
+
   // Editor pane content
   const editorPane = (
     <div className="flex flex-col h-full">
@@ -324,9 +341,11 @@ export default function Home() {
         onEvaluate={() => handleEvaluate(code)}
         onBpmChange={handleBpmChange}
         onSave={() => setSaveDialogOpen(true)}
+        onShare={() => setShareDialogOpen(true)}
         error={error}
         hasUnsavedChanges={hasUnsavedChanges}
         isAuthenticated={isAuthenticated}
+        hasCurrentPattern={!!currentPattern}
         patternSelector={
           <PatternList
             onLoad={handleLoadPattern}
@@ -344,6 +363,14 @@ export default function Home() {
         code={code}
         existingPattern={currentPattern}
         onSave={handleSavePattern}
+      />
+
+      {/* Share Dialog */}
+      <ShareDialog
+        open={shareDialogOpen}
+        onOpenChange={setShareDialogOpen}
+        pattern={currentPattern}
+        onVisibilityChange={handleVisibilityChange}
       />
     </main>
   );
