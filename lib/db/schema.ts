@@ -60,6 +60,7 @@ export const patterns = pgTable("patterns", {
   originalAuthorId: text("original_author_id").references(() => users.id),
   forkedFromId: text("forked_from_id"),
   isPublic: boolean("is_public").default(false),
+  waveformData: text("waveform_data"), // JSON stringified array of amplitudes
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

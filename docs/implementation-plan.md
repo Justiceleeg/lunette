@@ -995,6 +995,235 @@ export async function generateMetadata({ params }): Promise<Metadata> {
 
 ---
 
+## Slice 9.5: UX Refactor
+
+**Goal:** Restructure navigation and pages for a cleaner user experience. Add waveform visualizations to pattern cards.
+
+**Dependencies:** Slice 9
+
+**Summary of Changes:**
+
+| Route | Purpose |
+|-------|---------|
+| `/` | Redirects to `/browse` (community patterns) |
+| `/gallery` | User's personal patterns + "Create New" button |
+| `/editor/new` | New pattern (saves → URL becomes `/editor/[id]`) |
+| `/editor/[id]` | Editable pattern view (owner only) |
+| `/pattern/[id]` | Read-only view (same layout as editor, with AI chat) |
+
+**Removed:**
+- Current pattern detail page design (replaced with editor-style layout)
+- "Edit Pattern" button (redundant with "Open in Editor")
+- Pattern selector dropdown at bottom of editor (use `/gallery` instead)
+- `/` as main editor route
+
+---
+
+### Files to create:
+
+### `src/app/(main)/gallery/page.tsx`
+```typescript
+// User's personal pattern gallery
+// - Grid of user's patterns with waveform cards
+// - "Create New Pattern" button → navigates to /editor/new
+// - Empty state for users with no patterns
+// - Requires authentication (redirect to login if not)
+```
+
+### `src/app/(main)/editor/new/page.tsx`
+```typescript
+// New pattern editor
+// - Same layout as /editor/[id]
+// - Starts with default starter code
+// - On first save: creates pattern in DB, updates URL to /editor/[id]
+// - Uses window.history.replaceState to update URL without navigation
+```
+
+### `src/app/(main)/editor/[id]/page.tsx`
+```typescript
+// Editable pattern view (owner only)
+// - Full split-pane layout (code + chat)
+// - Editable CodeMirror editor with playhead highlighting
+// - Save button updates existing pattern
+// - If not owner, redirect to /pattern/[id]
+```
+
+### `src/components/patterns/Waveform.tsx`
+```typescript
+// Waveform visualization component
+// Props:
+// - data: number[] (amplitude values 0-1)
+// - progress: number (0-1, playhead position)
+// - onSeek?: (position: number) => void
+// - isPlaying: boolean
+// - height?: number
+// - barWidth?: number
+// - barGap?: number
+//
+// Features:
+// - Renders as SVG or Canvas
+// - Shows playhead line at current position
+// - Click to seek (if onSeek provided)
+// - Played portion highlighted differently than unplayed
+```
+
+### `src/lib/audio/waveform.ts`
+```typescript
+// Waveform generation using pattern approximation
+//
+// generateWaveform(code: string, options?: WaveformOptions): number[]
+// - Evaluates Strudel pattern and queries events (haps)
+// - Extracts timing and velocity/intensity from events
+// - Returns array of amplitude values (0-1) based on event density/intensity
+// - Options: { duration: number, barsCount: number }
+//
+// Default: 30 seconds or 4 cycles, whichever is shorter
+// Returns ~100 amplitude values for visualization
+//
+// This is instant (no audio rendering) - pattern structure only
+```
+
+### `src/hooks/useWaveformPlayer.ts`
+```typescript
+// Enhanced inline player with waveform support
+// - Extends useInlinePlayer functionality
+// - Tracks playback progress (0-1) for playhead position
+// - Supports seek to position
+// - Returns { play, stop, seek, isPlaying, progress, currentPatternId }
+```
+
+---
+
+### Files to modify:
+
+### `src/app/page.tsx`
+```typescript
+// Change from main editor to redirect
+// - Redirect to /browse
+// - Can use Next.js redirect() or client-side router.push
+```
+
+### `src/app/(main)/pattern/[id]/page.tsx`
+```typescript
+// Complete rewrite to editor-style layout
+// - Same split-pane as editor (code left, chat right)
+// - Header bar with: pattern name, "by [author] | created [date]"
+// - Read-only CodeMirror editor with playhead highlighting
+// - Fork button (if authenticated and not owner)
+// - "Open in Editor" button (if owner, goes to /editor/[id])
+// - Ephemeral AI chat (not saved to DB)
+// - Play/Stop controls, BPM display
+```
+
+### `src/app/(main)/browse/page.tsx`
+```typescript
+// Update to use waveform cards
+// - Replace code preview with Waveform component
+// - Add progress tracking for currently playing pattern
+// - Click waveform to seek
+```
+
+### `src/components/patterns/PatternCard.tsx`
+```typescript
+// Replace code preview with waveform
+// - Show Waveform component instead of code snippet
+// - Pass playback progress for playhead
+// - Handle seek clicks on waveform
+// - Keep: name, author, play/stop, fork button
+```
+
+### `src/components/editor/Controls.tsx`
+```typescript
+// Remove pattern selector (PatternList dropdown)
+// - Keep: Play, Stop, Evaluate, BPM, Save, Share buttons
+// - Users access patterns from /gallery instead
+```
+
+### `src/lib/db/schema.ts`
+```typescript
+// Add waveform data column to patterns table
+export const patterns = pgTable('patterns', {
+  // ... existing columns
+  waveformData: text('waveform_data'), // JSON stringified array of amplitudes
+});
+```
+
+### `src/app/api/patterns/route.ts`
+```typescript
+// Update POST to generate waveform on save
+// - After saving pattern, generate waveform data
+// - Store in waveformData column
+// - Return waveform data in response
+```
+
+---
+
+### Implementation Notes:
+
+1. **Waveform Generation Strategy (Pattern Approximation):**
+   - Evaluate Strudel pattern and query events using `pattern.queryArc(0, duration)`
+   - Each event (hap) has timing (`whole.begin`, `whole.end`) and value (velocity, etc.)
+   - Divide duration into ~100 time slices
+   - For each slice, calculate amplitude based on event density and intensity
+   - Instant generation (no audio rendering needed)
+   - Store as JSON array in DB
+
+2. **Waveform Rendering:**
+   - SVG bars (simpler) or Canvas (if performance needed)
+   - ~100 bars, each bar height = event density/intensity in that time slice
+   - Played portion: full opacity cyan
+   - Unplayed portion: 30% opacity gray
+   - Playhead: vertical line at current position
+
+3. **Progress Tracking:**
+   - Track `audioContext.currentTime` relative to pattern start
+   - Normalize to 0-1 based on waveform duration
+   - Loop back to 0 when pattern cycles
+
+4. **Seek Implementation:**
+   - Calculate position from click x-coordinate
+   - Strudel may need to restart from that position
+   - If seeking not feasible with Strudel, make waveform click-to-play-from-start only
+
+5. **URL Update on New Pattern Save:**
+   ```typescript
+   // After successful save with new ID
+   window.history.replaceState(null, '', `/editor/${newPatternId}`);
+   ```
+
+6. **Read-only Editor Mode:**
+   - CodeMirror supports `EditorView.editable.of(false)`
+   - Keep playhead highlighting working
+   - Disable keyboard shortcuts for evaluation
+
+7. **Ephemeral Chat:**
+   - Don't save messages to DB
+   - Clear on page leave
+   - Use same chat UI components, just don't persist
+
+---
+
+**Acceptance Criteria:**
+- [ ] `/` redirects to `/browse`
+- [ ] `/gallery` shows user's patterns with waveform cards
+- [ ] `/gallery` has "Create New Pattern" button
+- [ ] `/editor/new` works for creating new patterns
+- [ ] First save updates URL to `/editor/[id]`
+- [ ] `/editor/[id]` is editable for pattern owner
+- [ ] `/editor/[id]` redirects non-owners to `/pattern/[id]`
+- [ ] `/pattern/[id]` shows read-only editor-style layout
+- [ ] `/pattern/[id]` has working playhead highlighting
+- [ ] `/pattern/[id]` shows "by [author] | created [date]"
+- [ ] `/pattern/[id]` has Fork button (creates copy → `/editor/[newId]`)
+- [ ] `/pattern/[id]` has ephemeral AI chat
+- [ ] Browse page shows waveforms instead of code
+- [ ] Gallery page shows waveforms instead of code
+- [ ] Playhead moves across waveform during playback
+- [ ] Can click waveform to seek (or play from start if seek not feasible)
+- [ ] Pattern selector removed from editor controls
+
+---
+
 ## Slice 10: Learning Paths
 
 **Goal:** Structured learning with progress tracking.

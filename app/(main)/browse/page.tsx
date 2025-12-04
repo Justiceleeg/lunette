@@ -62,7 +62,7 @@ export default function BrowsePage() {
 
   const handleForkSuccess = useCallback(
     (newPatternId: string) => {
-      router.push(`/pattern/${newPatternId}`);
+      router.push(`/editor/${newPatternId}`);
     },
     [router]
   );

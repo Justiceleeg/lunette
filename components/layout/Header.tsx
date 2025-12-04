@@ -17,6 +17,18 @@ export function Header() {
           >
             Browse
           </Link>
+          <Link
+            href="/gallery"
+            className="text-sm text-subtext-color hover:text-default-font transition-colors"
+          >
+            My Patterns
+          </Link>
+          <Link
+            href="/editor/new"
+            className="text-sm text-subtext-color hover:text-default-font transition-colors"
+          >
+            Create
+          </Link>
         </nav>
       </div>
       <UserMenu />

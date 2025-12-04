@@ -12,10 +12,11 @@ import type { EditorSelection } from "@/lib/strudel/tools";
 
 interface EditorProps {
   value: string;
-  onChange: (value: string) => void;
-  onEvaluate: (code: string) => void;
+  onChange?: (value: string) => void;
+  onEvaluate?: (code: string) => void;
   onSelectionChange?: (selection: EditorSelection | null) => void;
   highlights?: Array<{ start: number; end: number }>;
+  readOnly?: boolean;
 }
 
 // StateEffect for updating highlights
@@ -56,20 +57,22 @@ const highlightField = StateField.define<DecorationSet>({
   provide: (f) => EditorView.decorations.from(f),
 });
 
-export function Editor({ value, onChange, onEvaluate, onSelectionChange, highlights = [] }: EditorProps) {
+export function Editor({ value, onChange, onEvaluate, onSelectionChange, highlights = [], readOnly = false }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const onEvaluateRef = useRef(onEvaluate);
   const onChangeRef = useRef(onChange);
   const onSelectionChangeRef = useRef(onSelectionChange);
   const initialValueRef = useRef(value);
+  const readOnlyRef = useRef(readOnly);
 
   // Keep refs updated
   useEffect(() => {
     onEvaluateRef.current = onEvaluate;
     onChangeRef.current = onChange;
     onSelectionChangeRef.current = onSelectionChange;
-  }, [onEvaluate, onChange, onSelectionChange]);
+    readOnlyRef.current = readOnly;
+  }, [onEvaluate, onChange, onSelectionChange, readOnly]);
 
   // Create evaluate keymap
   const evaluateKeymap = useCallback(() => {
@@ -78,7 +81,7 @@ export function Editor({ value, onChange, onEvaluate, onSelectionChange, highlig
         key: "Mod-Enter",
         run: (view) => {
           const code = view.state.doc.toString();
-          onEvaluateRef.current(code);
+          onEvaluateRef.current?.(code);
           return true;
         },
       },
@@ -90,7 +93,7 @@ export function Editor({ value, onChange, onEvaluate, onSelectionChange, highlig
     if (!containerRef.current) return;
 
     const updateListener = EditorView.updateListener.of((update) => {
-      if (update.docChanged) {
+      if (update.docChanged && onChangeRef.current) {
         onChangeRef.current(update.state.doc.toString());
       }
 
@@ -111,34 +114,45 @@ export function Editor({ value, onChange, onEvaluate, onSelectionChange, highlig
       }
     });
 
+    // Build extensions array based on readOnly mode
+    const extensions = [
+      basicSetup,
+      javascript(),
+      oneDark,
+      updateListener,
+      highlightField,
+      EditorView.theme({
+        "&": {
+          height: "100%",
+          fontSize: "14px",
+        },
+        ".cm-scroller": {
+          overflow: "auto",
+          fontFamily: "'IBM Plex Mono', monospace",
+        },
+        ".cm-content": {
+          padding: "16px 0",
+        },
+        ".cm-line": {
+          padding: "0 16px",
+        },
+      }),
+    ];
+
+    // Only add editable extensions if not readOnly
+    if (!readOnlyRef.current) {
+      extensions.unshift(evaluateKeymap()); // Must come before basicSetup
+      extensions.push(history());
+      extensions.push(keymap.of([...defaultKeymap, ...historyKeymap]));
+    } else {
+      // Make editor read-only
+      extensions.push(EditorView.editable.of(false));
+      extensions.push(EditorState.readOnly.of(true));
+    }
+
     const state = EditorState.create({
       doc: initialValueRef.current,
-      extensions: [
-        evaluateKeymap(), // Must come before basicSetup to take precedence
-        basicSetup,
-        javascript(),
-        oneDark,
-        history(),
-        keymap.of([...defaultKeymap, ...historyKeymap]),
-        updateListener,
-        highlightField,
-        EditorView.theme({
-          "&": {
-            height: "100%",
-            fontSize: "14px",
-          },
-          ".cm-scroller": {
-            overflow: "auto",
-            fontFamily: "'IBM Plex Mono', monospace",
-          },
-          ".cm-content": {
-            padding: "16px 0",
-          },
-          ".cm-line": {
-            padding: "0 16px",
-          },
-        }),
-      ],
+      extensions,
     });
 
     const view = new EditorView({

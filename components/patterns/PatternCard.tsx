@@ -1,5 +1,6 @@
 "use client";
 
+import { useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Play, Square, Loader2 } from "lucide-react";
@@ -45,6 +46,19 @@ export function PatternCard({
 }: PatternCardProps) {
   const isOwner = currentUserId === pattern.authorId;
 
+  const handlePlayClick = useCallback(
+    (e: React.MouseEvent) => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (isPlaying) {
+        onStop();
+      } else {
+        onPlay();
+      }
+    },
+    [isPlaying, onPlay, onStop]
+  );
+
   return (
     <div className="group relative flex flex-col bg-card border border-border rounded-lg overflow-hidden hover:border-brand-600/50 transition-colors">
       {/* Playing indicator */}
@@ -54,8 +68,8 @@ export function PatternCard({
         </div>
       )}
 
-      {/* Pattern header */}
-      <div className="p-4 pb-2">
+      {/* Pattern header with title */}
+      <div className="p-4">
         <Link
           href={`/pattern/${pattern.id}`}
           className="block text-lg font-semibold text-default-font hover:text-brand-600 transition-colors truncate"
@@ -64,7 +78,7 @@ export function PatternCard({
         </Link>
 
         {/* Author info */}
-        <div className="flex items-center gap-2 mt-1 text-sm text-subtext-color">
+        <div className="flex items-center gap-2 mt-2 text-sm text-subtext-color">
           {pattern.author?.image && (
             <Image
               src={pattern.author.image}
@@ -80,19 +94,12 @@ export function PatternCard({
         </div>
       </div>
 
-      {/* Code preview */}
-      <div className="px-4 pb-2 flex-1">
-        <pre className="text-xs text-subtext-color font-mono bg-neutral-50/5 rounded p-2 overflow-hidden h-16">
-          <code className="line-clamp-3">{pattern.code}</code>
-        </pre>
-      </div>
-
       {/* Actions */}
-      <div className="px-4 pb-4 pt-2 flex items-center gap-2">
+      <div className="px-4 pb-4 pt-2 flex items-center gap-2 border-t border-border/50">
         {/* Play/Stop button */}
         <Button
           size="sm"
-          onClick={isPlaying ? onStop : onPlay}
+          onClick={handlePlayClick}
           disabled={isLoading}
           className={isPlaying ? "bg-destructive hover:bg-destructive/90" : ""}
         >
@@ -120,11 +127,11 @@ export function PatternCard({
             onForkSuccess={onForkSuccess}
           />
         )}
-      </div>
 
-      {/* Metadata */}
-      <div className="px-4 pb-3 text-xs text-subtext-color border-t border-border/50 pt-2">
-        {new Date(pattern.updatedAt).toLocaleDateString()}
+        {/* Date on the right */}
+        <span className="ml-auto text-xs text-subtext-color">
+          {new Date(pattern.updatedAt).toLocaleDateString()}
+        </span>
       </div>
     </div>
   );

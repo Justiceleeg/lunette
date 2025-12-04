@@ -35,18 +35,12 @@ declare module "@strudel/web" {
   interface Repl {
     evaluate: (code: string, autoplay?: boolean) => Promise<unknown>;
     scheduler: Scheduler;
+    audioContext?: AudioContext;
+    getAudioContext?: () => AudioContext;
     setCps: (cps: number) => void;
     setPattern: (pattern: unknown, autoplay?: boolean) => void;
     stop: () => void;
   }
 
   export function initStrudel(options?: StrudelInitOptions): Promise<Repl>;
-}
-
-declare module "@strudel/core" {
-  export function evaluate(code: string): Promise<unknown>;
-}
-
-declare module "@strudel/webaudio" {
-  export function getAudioContext(): AudioContext;
 }

@@ -20,7 +20,6 @@ interface ControlsProps {
   hasUnsavedChanges?: boolean;
   isAuthenticated?: boolean;
   hasCurrentPattern?: boolean;
-  patternSelector?: React.ReactNode;
 }
 
 export function Controls({
@@ -37,7 +36,6 @@ export function Controls({
   hasUnsavedChanges,
   isAuthenticated,
   hasCurrentPattern,
-  patternSelector,
 }: ControlsProps) {
   // Local state for typing - allows intermediate values
   const [bpmInput, setBpmInput] = useState(bpm.toString());
@@ -92,9 +90,6 @@ export function Controls({
             {"\u2318"}+Enter
           </kbd>
         </Button>
-
-        {/* Pattern selector */}
-        {patternSelector}
 
         {/* Save Button - only show when authenticated */}
         {isAuthenticated && onSave && (

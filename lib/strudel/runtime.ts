@@ -57,14 +57,21 @@ export function isInitialized(): boolean {
 
 // Resume AudioContext if suspended (browsers suspend to save resources)
 async function resumeAudioContext(): Promise<void> {
+  if (!runtime.repl) return;
+
   try {
-    const { getAudioContext } = await import("@strudel/webaudio");
-    const audioContext = getAudioContext();
+    // Get audio context from the repl instance
+    const repl = runtime.repl as {
+      audioContext?: AudioContext;
+      getAudioContext?: () => AudioContext;
+    };
+
+    const audioContext = repl.audioContext ?? repl.getAudioContext?.();
     if (audioContext && audioContext.state === "suspended") {
       await audioContext.resume();
     }
   } catch {
-    // getAudioContext may not be available, continue anyway
+    // Audio context may not be available, continue anyway
   }
 }
 

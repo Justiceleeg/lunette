@@ -1,0 +1,1 @@
+ALTER TABLE "patterns" ADD COLUMN "waveform_data" text;
