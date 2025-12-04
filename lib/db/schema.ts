@@ -49,3 +49,17 @@ export const verifications = pgTable("verifications", {
   createdAt: timestamp("created_at").defaultNow(),
   updatedAt: timestamp("updated_at").defaultNow(),
 });
+
+export const patterns = pgTable("patterns", {
+  id: text("id").primaryKey(),
+  code: text("code").notNull(),
+  name: text("name").notNull(),
+  authorId: text("author_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  originalAuthorId: text("original_author_id").references(() => users.id),
+  forkedFromId: text("forked_from_id"),
+  isPublic: boolean("is_public").default(false),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});

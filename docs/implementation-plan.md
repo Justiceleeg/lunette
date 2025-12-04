@@ -762,12 +762,12 @@ pnpm drizzle-kit push
 3. Protect routes that require auth using middleware or layout checks.
 
 **Acceptance Criteria:**
-- [ ] Can click "Sign in with GitHub"
-- [ ] Redirects to GitHub and back
-- [ ] User created in database
-- [ ] User avatar shows in header
-- [ ] Can log out
-- [ ] Session persists across page refresh
+- [x] Can click "Sign in with GitHub"
+- [x] Redirects to GitHub and back
+- [x] User created in database
+- [x] User avatar shows in header
+- [x] Can log out
+- [x] Session persists across page refresh
 
 ---
 
@@ -841,12 +841,12 @@ export const patterns = pgTable('patterns', {
 3. Unsaved changes warning: Show indicator when editor content differs from last saved state.
 
 **Acceptance Criteria:**
-- [ ] Can save current pattern with a name
-- [ ] Can see list of saved patterns
-- [ ] Can click pattern to load it
-- [ ] Can update existing pattern
-- [ ] Can delete pattern
-- [ ] Unsaved changes indicator works
+- [x] Can save current pattern with a name
+- [x] Can see list of saved patterns
+- [x] Can click pattern to load it
+- [x] Can update existing pattern
+- [x] Can delete pattern
+- [x] Unsaved changes indicator works
 
 ---
 

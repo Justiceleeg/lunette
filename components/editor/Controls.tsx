@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Play, Square, RotateCcw } from "lucide-react";
+import { Play, Square, RotateCcw, Save, Circle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -14,7 +14,11 @@ interface ControlsProps {
   onStop: () => void;
   onEvaluate: () => void;
   onBpmChange: (bpm: number) => void;
+  onSave?: () => void;
   error?: string | null;
+  hasUnsavedChanges?: boolean;
+  isAuthenticated?: boolean;
+  patternSelector?: React.ReactNode;
 }
 
 export function Controls({
@@ -25,7 +29,11 @@ export function Controls({
   onStop,
   onEvaluate,
   onBpmChange,
+  onSave,
   error,
+  hasUnsavedChanges,
+  isAuthenticated,
+  patternSelector,
 }: ControlsProps) {
   // Local state for typing - allows intermediate values
   const [bpmInput, setBpmInput] = useState(bpm.toString());
@@ -80,6 +88,26 @@ export function Controls({
             {"\u2318"}+Enter
           </kbd>
         </Button>
+
+        {/* Pattern selector */}
+        {patternSelector}
+
+        {/* Save Button - only show when authenticated */}
+        {isAuthenticated && onSave && (
+          <Button
+            onClick={onSave}
+            variant="outline"
+            size="sm"
+            className="gap-2"
+            title="Save pattern"
+          >
+            <Save className="h-4 w-4" />
+            <span className="hidden sm:inline">Save</span>
+            {hasUnsavedChanges && (
+              <Circle className="h-2 w-2 fill-current text-amber-500" />
+            )}
+          </Button>
+        )}
       </div>
 
       {/* BPM Control */}

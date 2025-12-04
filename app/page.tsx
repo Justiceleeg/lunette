@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useMemo } from "react";
 import { useChat } from "@ai-sdk/react";
 import { Editor } from "@/components/editor/Editor";
 import { Controls } from "@/components/editor/Controls";
 import { SplitPane } from "@/components/layout/SplitPane";
 import { Header } from "@/components/layout/Header";
 import { Chat } from "@/components/chat/Chat";
+import { SaveDialog, type Pattern } from "@/components/patterns/SaveDialog";
+import { PatternList } from "@/components/patterns/PatternList";
+import { useSession } from "@/lib/auth-client";
 import type { RuntimeState, EditorSelection } from "@/lib/strudel/tools";
 import {
   initStrudel,
@@ -43,6 +46,18 @@ export default function Home() {
 
   // Track editor selection for AI context
   const [selection, setSelection] = useState<EditorSelection | null>(null);
+
+  // Pattern save/load state
+  const [currentPattern, setCurrentPattern] = useState<Pattern | null>(null);
+  const [saveDialogOpen, setSaveDialogOpen] = useState(false);
+  const { data: session } = useSession();
+  const isAuthenticated = !!session?.user;
+
+  // Track unsaved changes - compare current code with saved pattern code
+  const hasUnsavedChanges = useMemo(() => {
+    if (!currentPattern) return false;
+    return code !== currentPattern.code;
+  }, [code, currentPattern]);
 
   // Get current runtime state for API calls
   const getRuntimeState = useCallback((): RuntimeState => {
@@ -238,6 +253,23 @@ export default function Home() {
     setHighlights([]);
   }, []);
 
+  // Pattern handlers
+  const handleLoadPattern = useCallback((pattern: Pattern) => {
+    setCode(pattern.code);
+    setCurrentPattern(pattern);
+    setHasEvaluated(false);
+  }, []);
+
+  const handleSavePattern = useCallback((pattern: Pattern) => {
+    setCurrentPattern(pattern);
+  }, []);
+
+  const handleDeletePattern = useCallback((patternId: string) => {
+    if (currentPattern?.id === patternId) {
+      setCurrentPattern(null);
+    }
+  }, [currentPattern]);
+
   // Editor pane content
   const editorPane = (
     <div className="flex flex-col h-full">
@@ -291,7 +323,27 @@ export default function Home() {
         onStop={handleStop}
         onEvaluate={() => handleEvaluate(code)}
         onBpmChange={handleBpmChange}
+        onSave={() => setSaveDialogOpen(true)}
         error={error}
+        hasUnsavedChanges={hasUnsavedChanges}
+        isAuthenticated={isAuthenticated}
+        patternSelector={
+          <PatternList
+            onLoad={handleLoadPattern}
+            onDelete={handleDeletePattern}
+            currentPattern={currentPattern}
+            isAuthenticated={isAuthenticated}
+          />
+        }
+      />
+
+      {/* Save Dialog */}
+      <SaveDialog
+        open={saveDialogOpen}
+        onOpenChange={setSaveDialogOpen}
+        code={code}
+        existingPattern={currentPattern}
+        onSave={handleSavePattern}
       />
     </main>
   );
