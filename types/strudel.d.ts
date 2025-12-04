@@ -46,3 +46,7 @@ declare module "@strudel/web" {
 declare module "@strudel/core" {
   export function evaluate(code: string): Promise<unknown>;
 }
+
+declare module "@strudel/webaudio" {
+  export function getAudioContext(): AudioContext;
+}

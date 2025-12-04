@@ -25,6 +25,7 @@ const runtime: StrudelRuntime = {
 let errorCallback: ErrorCallback | null = null;
 let highlightCallback: HighlightCallback | null = null;
 let animationFrameId: number | null = null;
+let initPromise: Promise<void> | null = null;
 
 export function onError(callback: ErrorCallback) {
   errorCallback = callback;
@@ -54,33 +55,61 @@ export function isInitialized(): boolean {
   return runtime.isInitialized;
 }
 
+// Resume AudioContext if suspended (browsers suspend to save resources)
+async function resumeAudioContext(): Promise<void> {
+  try {
+    const { getAudioContext } = await import("@strudel/webaudio");
+    const audioContext = getAudioContext();
+    if (audioContext && audioContext.state === "suspended") {
+      await audioContext.resume();
+    }
+  } catch {
+    // getAudioContext may not be available, continue anyway
+  }
+}
+
 export async function initStrudel(): Promise<void> {
+  // Already initialized
   if (runtime.isInitialized) return;
 
-  try {
-    const { initStrudel: init, samples } = await import("@strudel/web");
+  // If initialization is in progress, wait for it instead of starting another
+  if (initPromise) return initPromise;
 
-    // initStrudel returns a promise that resolves to the repl instance
-    // prebake loads the standard dirt-samples (bd, sd, hh, etc.)
-    const repl = await init({
-      prebake: () =>
-        samples("https://raw.githubusercontent.com/tidalcycles/Dirt-Samples/master/strudel.json"),
-    });
+  initPromise = (async () => {
+    try {
+      const { initStrudel: init, samples } = await import("@strudel/web");
 
-    runtime.repl = repl;
-    runtime.isInitialized = true;
-    runtime.lastError = null;
-  } catch (error) {
-    const err = error instanceof Error ? error : new Error(String(error));
-    runtime.lastError = err;
-    errorCallback?.(err);
-    throw err;
-  }
+      // initStrudel returns a promise that resolves to the repl instance
+      // prebake loads the standard dirt-samples (bd, sd, hh, etc.)
+      const repl = await init({
+        prebake: () =>
+          samples("https://raw.githubusercontent.com/tidalcycles/Dirt-Samples/master/strudel.json"),
+      });
+
+      runtime.repl = repl;
+      runtime.isInitialized = true;
+      runtime.lastError = null;
+    } catch (error) {
+      const err = error instanceof Error ? error : new Error(String(error));
+      runtime.lastError = err;
+      errorCallback?.(err);
+      throw err;
+    } finally {
+      initPromise = null;
+    }
+  })();
+
+  return initPromise;
 }
 
 export async function evaluate(code: string, autoplay = true): Promise<void> {
   if (!runtime.isInitialized) {
     throw new Error("Strudel not initialized. Call initStrudel() first.");
+  }
+
+  // Resume AudioContext if suspended before playback
+  if (autoplay) {
+    await resumeAudioContext();
   }
 
   try {
@@ -107,6 +136,9 @@ export async function play(): Promise<void> {
   if (!runtime.isInitialized) {
     throw new Error("Strudel not initialized. Call initStrudel() first.");
   }
+
+  // Resume AudioContext if suspended
+  await resumeAudioContext();
 
   // If we have code, re-evaluate it to start playback
   if (runtime.currentCode) {
@@ -285,4 +317,5 @@ export function cleanup(): void {
   runtime.repl = null;
   runtime.currentCode = "";
   runtime.lastError = null;
+  initPromise = null;
 }
