@@ -87,10 +87,25 @@ export async function initStrudel(): Promise<void> {
       const { initStrudel: init, samples } = await import("@strudel/web");
 
       // initStrudel returns a promise that resolves to the repl instance
-      // prebake loads the standard dirt-samples (bd, sd, hh, etc.)
+      // prebake loads the same samples as strudel.cc (from dough-samples)
+      const ds = "https://raw.githubusercontent.com/felixroos/dough-samples/main";
       const repl = await init({
-        prebake: () =>
-          samples("https://raw.githubusercontent.com/tidalcycles/Dirt-Samples/master/strudel.json"),
+        prebake: async () => {
+          await Promise.all([
+            // Drum machines (tr909, tr808, RolandMC303, etc.)
+            samples(`${ds}/tidal-drum-machines.json`),
+            // Piano (Salamander Grand Piano)
+            samples(`${ds}/piano.json`),
+            // Curated Dirt-Samples (bd, sd, hh, cp, etc.)
+            samples(`${ds}/Dirt-Samples.json`),
+            // Emu SP12 sampler
+            samples(`${ds}/EmuSP12.json`),
+            // VCSL orchestral/percussion samples
+            samples(`${ds}/vcsl.json`),
+            // Mridangam (Indian percussion)
+            samples(`${ds}/mridangam.json`),
+          ]);
+        },
       });
 
       runtime.repl = repl;

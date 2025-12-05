@@ -1411,16 +1411,18 @@ ${topic.learningObjectives.join('\n')}
 ## Implementation Order Summary
 
 ```
-Week 1-2:   Slice 0 (Setup) + Slice 1 (Editor+Sound) + Slice 2 (Playhead)
-Week 3:     Slice 3 (Split Pane + Chat UI)
-Week 4:     Slice 4 (LLM Integration)
-Week 5:     Slice 5 (Runtime Tools) + Slice 6 (Auth) [parallel]
-Week 6:     Slice 7 (Save/Load)
-Week 7:     Slice 8 (Sharing + Fork)
-Week 8:     Slice 9 (Gallery)
-Week 9:     Slice 10 (Learning Paths)
-Week 10-11: Slice 11 (Polish)
-Week 12:    Buffer + Launch
+Slice 0 (Setup) + Slice 1 (Editor+Sound) + Slice 2 (Playhead)
+Slice 3 (Split Pane + Chat UI)
+Slice 4 (LLM Integration)
+Slice 5 (Runtime Tools) + Slice 6 (Auth) [parallel]
+Slice 7 (Save/Load)
+Slice 8 (Sharing + Fork)
+Slice 9 (Gallery)
+Slice 9.5 (UX Refactor)
+Slice 10 (Learning Paths)
+Slice 11 (Polish)
+--- MVP Launch ---
+Slice 12 (Custom Sample Upload) [Post-MVP]
 ```
 
 ---
@@ -1441,8 +1443,192 @@ Ideas to consider after initial launch:
 - MIDI output support
 - Recording/export to audio file
 - Collaborative editing (multiplayer)
-- Custom sample upload
 - Visual pattern editor (drag-and-drop)
+
+---
+
+## Slice 12: Custom Sample Upload
+
+**Goal:** Users can upload their own audio samples and use them in patterns.
+
+**Dependencies:** Slice 7 (Pattern Save/Load), Slice 6 (Auth)
+
+**Files to create:**
+
+### `src/lib/samples/storage.ts`
+```typescript
+// IndexedDB storage for user samples
+// - initSampleStorage(): Initialize IndexedDB
+// - storeSample(userId: string, name: string, blob: Blob): Promise<string>
+// - getSample(id: string): Promise<Blob | null>
+// - listUserSamples(userId: string): Promise<SampleMeta[]>
+// - deleteSample(id: string): Promise<void>
+// - getSampleUrl(id: string): string (blob URL or data URL)
+//
+// Schema:
+// - id: string (uuid)
+// - userId: string
+// - name: string (sample name, e.g., "kick", "snare")
+// - filename: string (original filename)
+// - mimeType: string
+// - size: number (bytes)
+// - blob: Blob
+// - createdAt: Date
+```
+
+### `src/lib/samples/register.ts`
+```typescript
+// Register user samples with Strudel runtime
+// - registerUserSamples(samples: SampleMeta[]): Promise<void>
+// - Uses Strudel's registerSound() or samples() with blob URLs
+// - Creates a user sample map: { kick: [url1, url2], snare: [url1] }
+// - Samples accessible as s("kick:0"), s("snare"), etc.
+```
+
+### `src/components/samples/SampleUploader.tsx`
+```typescript
+// Upload UI component
+// Props:
+// - onUpload: (samples: SampleMeta[]) => void
+//
+// Features:
+// - Drag-and-drop zone
+// - File picker button
+// - Folder upload support (webkitdirectory)
+// - Shows upload progress
+// - Validates file types (wav, mp3, ogg, flac, aac, m4a)
+// - Max file size validation (e.g., 10MB per file)
+// - Folder structure → sample names (folder name = sample name)
+```
+
+### `src/components/samples/SampleLibrary.tsx`
+```typescript
+// User's sample library panel
+// - List of uploaded samples with:
+//   - Name
+//   - Duration
+//   - Play preview button
+//   - Delete button
+// - Group by sample name (shows count, e.g., "kick (3)")
+// - Search/filter
+// - "Upload" button opens SampleUploader
+```
+
+### `src/components/samples/SamplePreview.tsx`
+```typescript
+// Mini audio player for sample preview
+// - Waveform visualization
+// - Play/pause
+// - Shows duration
+```
+
+### `src/app/(main)/settings/samples/page.tsx`
+```typescript
+// Sample management page
+// - SampleLibrary component
+// - Storage usage indicator
+// - "Clear all samples" button
+// - Instructions for folder structure
+```
+
+### Update `src/lib/strudel/runtime.ts`
+```typescript
+// After initializing default samples, also register user samples
+// - Load user samples from IndexedDB on init
+// - Call registerUserSamples()
+// - Provide refreshUserSamples() for after new uploads
+```
+
+### Update `src/app/(main)/page.tsx` (or editor pages)
+```typescript
+// Add sample library access
+// - Button/tab to open sample library
+// - Register samples on mount
+// - Refresh after uploads
+```
+
+---
+
+**Implementation Notes:**
+
+1. **IndexedDB Structure:**
+   ```typescript
+   const db = await openDB('lunette-samples', 1, {
+     upgrade(db) {
+       const store = db.createObjectStore('samples', { keyPath: 'id' });
+       store.createIndex('userId', 'userId');
+       store.createIndex('name', 'name');
+     },
+   });
+   ```
+
+2. **Folder Upload Handling:**
+   ```typescript
+   // Input with webkitdirectory
+   <input
+     type="file"
+     webkitdirectory=""
+     multiple
+     onChange={(e) => {
+       const files = Array.from(e.target.files || []);
+       // Group by parent folder name
+       const byFolder = files.reduce((acc, file) => {
+         const parts = file.webkitRelativePath.split('/');
+         const folderName = parts[parts.length - 2] || 'samples';
+         if (!acc[folderName]) acc[folderName] = [];
+         acc[folderName].push(file);
+         return acc;
+       }, {});
+     }}
+   />
+   ```
+
+3. **Registering with Strudel:**
+   ```typescript
+   import { registerSound } from '@strudel/webaudio';
+
+   // For each sample
+   const url = URL.createObjectURL(blob);
+   await registerSound(name, url, { type: 'sample' });
+
+   // Or create a sample map and use samples()
+   const userSampleMap = {
+     kick: ['blob:...', 'blob:...'],
+     snare: ['blob:...'],
+   };
+   ```
+
+4. **Storage Limits:**
+   - IndexedDB typically allows 50MB-unlimited depending on browser
+   - Show storage usage: `navigator.storage.estimate()`
+   - Warn when approaching limits
+
+5. **Persistence Considerations:**
+   - IndexedDB persists until cleared
+   - Samples are LOCAL ONLY - not synced to server
+   - Patterns using custom samples won't work when shared
+   - Consider: Show warning when saving pattern with custom samples
+
+6. **Future Enhancement - Server Storage:**
+   - Upload to S3/R2 for permanent storage
+   - Associate samples with user account
+   - Share samples with patterns
+   - This requires backend work and storage costs
+
+---
+
+**Acceptance Criteria:**
+- [ ] Can upload single audio files
+- [ ] Can upload folder of samples
+- [ ] Folder name becomes sample name
+- [ ] Samples persist across page refresh (IndexedDB)
+- [ ] Samples appear in library with preview
+- [ ] Can delete samples
+- [ ] Samples work in patterns: `s("mysample")`
+- [ ] Multiple files with same name indexed: `s("kick:0 kick:1")`
+- [ ] Storage usage shown
+- [ ] Unsupported file types rejected
+- [ ] Warning shown when sharing pattern with custom samples
 
 ---
 
