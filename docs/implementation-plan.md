@@ -1204,143 +1204,222 @@ export const patterns = pgTable('patterns', {
 ---
 
 **Acceptance Criteria:**
-- [ ] `/` redirects to `/browse`
-- [ ] `/gallery` shows user's patterns with waveform cards
-- [ ] `/gallery` has "Create New Pattern" button
-- [ ] `/editor/new` works for creating new patterns
-- [ ] First save updates URL to `/editor/[id]`
-- [ ] `/editor/[id]` is editable for pattern owner
-- [ ] `/editor/[id]` redirects non-owners to `/pattern/[id]`
-- [ ] `/pattern/[id]` shows read-only editor-style layout
-- [ ] `/pattern/[id]` has working playhead highlighting
-- [ ] `/pattern/[id]` shows "by [author] | created [date]"
-- [ ] `/pattern/[id]` has Fork button (creates copy → `/editor/[newId]`)
-- [ ] `/pattern/[id]` has ephemeral AI chat
+- [x] `/` redirects to `/browse`
+- [x] `/gallery` shows user's patterns (waveform cards deferred)
+- [x] `/gallery` has "Create New Pattern" button
+- [x] `/editor/new` works for creating new patterns
+- [x] First save updates URL to `/editor/[id]`
+- [x] `/editor/[id]` is editable for pattern owner
+- [x] `/editor/[id]` redirects non-owners to `/pattern/[id]`
+- [x] `/pattern/[id]` shows read-only editor-style layout
+- [x] `/pattern/[id]` has working playhead highlighting
+- [x] `/pattern/[id]` shows "by [author] | created [date]"
+- [x] `/pattern/[id]` has Fork button (creates copy → `/editor/[newId]`)
+- [x] `/pattern/[id]` has ephemeral AI chat
 - [ ] Browse page shows waveforms instead of code
 - [ ] Gallery page shows waveforms instead of code
 - [ ] Playhead moves across waveform during playback
 - [ ] Can click waveform to seek (or play from start if seek not feasible)
-- [ ] Pattern selector removed from editor controls
+- [x] Pattern selector removed from editor controls
+
+**Implementation Notes (Actual):**
+
+The navigation restructure and core UX refactor is complete. Waveform visualization features remain unimplemented and can be addressed in a future slice. Key files:
+- `app/page.tsx` - Redirects to `/browse`
+- `app/(main)/gallery/page.tsx` - User's pattern gallery with inline playback
+- `app/(main)/editor/new/page.tsx` - New pattern creation with URL update on save
+- `app/(main)/editor/[id]/page.tsx` - Editable pattern view (owner only)
+- `app/(main)/pattern/[id]/page.tsx` - Read-only view with fork button and ephemeral chat
+
+Database schema includes `waveformData` column in patterns table, ready for future waveform implementation.
 
 ---
 
-## Slice 10: Learning Paths
+## Slice 10: Retrospective Learning
 
-**Goal:** Structured learning with progress tracking.
+**Goal:** Discovery-based learning where AI surfaces theory from user creations, not prescriptive curriculum.
 
-**Dependencies:** Slice 6
+**Dependencies:** Slice 8 (Forking), Slice 9 (Gallery)
 
-**Files to create:**
+**Pedagogical Foundation (from BrainLift):**
+
+| Principle | Implementation |
+|-----------|----------------|
+| **Retrospective Theory** | AI analyzes user's code and explains the music theory already present |
+| **Non-Linear Discovery** | No fixed curriculum; concepts surface organically from user's work |
+| **Emergent Complexity** | Users generate sophisticated patterns immediately; AI helps them understand why it sounds good |
+| **Remix Culture** | Forking is the primary learning mechanism; study by modifying |
+| **Wide Walls** | Support diverse pathways; rhythm, melody, harmony, sound design all equally valid entry points |
+
+---
+
+### Core Features
+
+**1. Pattern Analysis ("What Am I Hearing?")**
+- User creates or forks a pattern
+- AI can analyze and explain: "This pattern uses a 4-on-the-floor rhythm with syncopated hi-hats. The `.fast(2)` doubles the tempo of that element..."
+- Theory is discovered, not prescribed
+
+**2. Concept Tagging**
+- Patterns in gallery are auto-tagged with concepts they demonstrate
+- Tags: `syncopation`, `polyrhythm`, `chord-progression`, `call-response`, `phasing`, etc.
+- Users can browse gallery by concept to find examples
+
+**3. "Explain This" Button**
+- In editor and pattern view, button triggers AI analysis of current code
+- AI identifies and labels music theory concepts present
+- Links to related patterns in gallery that use similar concepts
+
+**4. Curated Starting Points (optional structure for those who want it)**
+- Not a curriculum, but a gallery of "starter patterns" organized loosely by complexity
+- Each starter pattern has AI context about what concepts it demonstrates
+- Users fork and modify, AI explains what their changes do musically
+
+---
+
+### Files to Create
 
 ### `src/lib/db/schema.ts` (add)
 ```typescript
-export const userProgress = pgTable('user_progress', {
+export const conceptTags = pgTable('concept_tags', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  patternId: uuid('pattern_id').references(() => patterns.id).notNull(),
+  concept: text('concept').notNull(), // e.g., 'syncopation', 'polyrhythm'
+  confidence: real('confidence').default(1.0), // AI confidence score
+  createdAt: timestamp('created_at').defaultNow(),
+});
+
+// Track which concepts a user has encountered (discovered, not "completed")
+export const userDiscoveries = pgTable('user_discoveries', {
   id: uuid('id').primaryKey().defaultRandom(),
   userId: uuid('user_id').references(() => users.id).notNull(),
-  pathId: text('path_id').notNull(),
-  topicId: text('topic_id').notNull(),
-  status: text('status').notNull().default('not_started'), // not_started, in_progress, completed
-  startedAt: timestamp('started_at'),
-  completedAt: timestamp('completed_at'),
+  concept: text('concept').notNull(),
+  firstSeenAt: timestamp('first_seen_at').defaultNow(),
+  patternId: uuid('pattern_id').references(() => patterns.id), // pattern where they first encountered it
 });
 ```
 
-### `src/lib/curriculum/paths.ts`
+### `src/lib/ai/analysis-prompt.ts`
 ```typescript
-// Learning path definitions
-export const learningPaths = [
-  {
-    id: 'fundamentals',
-    name: 'Fundamentals',
-    description: 'Start here. Learn the basics of patterns and sounds.',
-    topics: [
-      {
-        id: 'what-is-pattern',
-        name: 'What is a Pattern?',
-        starterCode: 's("bd")',
-        systemPromptAddition: '...', // Teaching context for this topic
-      },
-      // ...
-    ],
-  },
-  // ... other paths
-];
+// System prompt for pattern analysis mode
+// Instructs AI to:
+// - Identify music theory concepts present in code
+// - Explain in accessible language (for teenagers)
+// - Connect to sonic result ("this is why it sounds like...")
+// - Suggest modifications to explore variations
+// - Link concepts to their proper names (retrospective labeling)
 ```
 
-### `src/app/(main)/learn/page.tsx`
+### `src/lib/concepts/index.ts`
 ```typescript
-// Learning paths overview
-// - List of paths with progress indicators
-// - Expandable to show topics
-// - Click topic to start
+// Concept taxonomy for tagging
+export const concepts = {
+  rhythm: ['syncopation', 'polyrhythm', 'swing', 'euclidean', 'phasing', 'four-on-floor'],
+  melody: ['scale', 'arpeggio', 'chord-tones', 'passing-tones', 'call-response'],
+  harmony: ['chord-progression', 'parallel-harmony', 'drone', 'tension-release'],
+  structure: ['repetition', 'variation', 'layering', 'builds', 'drops'],
+  texture: ['density', 'space', 'contrast', 'timbre-blend'],
+  code: ['functions', 'randomness', 'conditionals', 'pattern-composition'],
+};
+
+// Human-readable explanations for each concept
+export const conceptDescriptions: Record<string, string> = {
+  syncopation: "Accents on unexpected beats—the 'off-beat' feel that makes music groove",
+  polyrhythm: "Two or more conflicting rhythms playing at once",
+  // ...
+};
 ```
 
-### `src/components/learn/PathCard.tsx`
+### `src/components/learn/ExplainButton.tsx`
 ```typescript
-// Shows path name, description
-// Progress bar
-// Expandable topic list
+// "What am I hearing?" button
+// - Sends current code + "analyze this pattern" prompt to AI
+// - Displays analysis in chat or modal
+// - Highlights concepts found
+// - Records discoveries to user profile
 ```
 
-### `src/components/learn/TopicItem.tsx`
+### `src/components/learn/ConceptBadge.tsx`
 ```typescript
-// Shows topic name
-// Status icon (not started / in progress / completed)
-// Click to start
+// Small badge showing a concept tag
+// - Hover for description
+// - Click to browse patterns with same concept
 ```
 
-### `src/app/(main)/learn/[pathId]/[topicId]/page.tsx`
+### `src/app/(main)/explore/page.tsx`
 ```typescript
-// Topic learning view
-// - Same split pane (editor + chat)
-// - Editor pre-loaded with starter code
-// - Chat context includes topic-specific teaching prompt
-// - "Mark Complete" button
+// Concept-organized gallery view
+// - Grid of concept categories (rhythm, melody, harmony, etc.)
+// - Each category shows patterns that demonstrate it
+// - "Starter Patterns" section with low-complexity examples
+// - No progress bars, no completion states
 ```
 
-### `src/app/api/progress/route.ts`
+### `src/app/(main)/explore/[concept]/page.tsx`
 ```typescript
-// GET - Get user's progress
-// POST - Update progress (start topic, complete topic)
+// Patterns filtered by concept
+// - Gallery of patterns tagged with this concept
+// - AI-generated description of the concept
+// - "Try it yourself" - opens editor with a minimal example
 ```
 
-**Implementation Notes:**
-
-1. Progress state machine:
-```
-not_started → in_progress → completed
-                    ↑
-                    └── (can revisit)
-```
-
-2. Topic-specific system prompt:
+### `src/components/learn/DiscoveryLog.tsx`
 ```typescript
-const systemPrompt = `
-${baseSystemPrompt}
-
-## Current Lesson: ${topic.name}
-
-The user is learning about ${topic.description}.
-Guide them through this concept step by step.
-Their editor has this starter code: ${topic.starterCode}
-
-Focus on:
-${topic.learningObjectives.join('\n')}
-`;
+// Optional: shows concepts user has encountered
+// - Not a "progress" tracker, but a "discovery journal"
+// - "You've explored: syncopation, layering, euclidean rhythms..."
+// - Framed as exploration, not completion
 ```
 
-3. Completion criteria: For MVP, manual "Mark Complete". Later: LLM judges understanding, or challenges.
+### `src/app/api/analyze/route.ts`
+```typescript
+// POST - Analyze a pattern
+// - Receives code
+// - Returns: { concepts: string[], explanation: string, suggestions: string[] }
+// - Optionally auto-tags pattern if user saves
+```
 
-4. Progress persistence: Save to database, load on app start.
+---
+
+### Implementation Notes
+
+1. **System Prompt:**
+   - See [`docs/ai-system-prompt.md`](./ai-system-prompt.md) for the full AI teacher prompt
+   - Implements the BrainLift pedagogy: retrospective theory, no gatekeeping, code-as-instrument
+   - Includes scenario examples and analysis mode extension
+   - Update `src/lib/ai/system-prompt.ts` to use this prompt (replaces basic Slice 4 prompt)
+
+2. **Auto-tagging Flow:**
+   - When user saves a public pattern, run analysis in background
+   - Extract concept tags and store with confidence scores
+   - Use for gallery filtering and recommendations
+
+3. **Discovery vs. Progress:**
+   - We track discoveries (concepts encountered) not completions
+   - No "mark complete" - exploration is ongoing
+   - Optional "discovery journal" shows breadth of exploration
+
+4. **Starter Patterns:**
+   - Curated patterns that clearly demonstrate single concepts
+   - Labeled with "Good for exploring: [concept]"
+   - Fork-first workflow: user forks, modifies, asks AI what changed
+
+5. **Forking as Pedagogy:**
+   - When user forks a pattern, AI can offer: "Want me to explain what this pattern is doing?"
+   - Changes are diffed: "You changed X, which made the rhythm feel more syncopated because..."
+
+---
 
 **Acceptance Criteria:**
-- [ ] Can see all learning paths
-- [ ] Progress shows on each path
-- [ ] Can click topic to start learning
-- [ ] Editor loads starter code
-- [ ] Chat is contextualized for topic
-- [ ] Can mark topic complete
-- [ ] Progress persists across sessions
+- [ ] "Explain This" button triggers AI analysis of current pattern
+- [ ] Analysis identifies and names music theory concepts present
+- [ ] Patterns can be tagged with concepts (auto or manual)
+- [ ] Gallery can be filtered by concept
+- [ ] `/explore` page shows concept-organized view
+- [ ] Concept badges link to related patterns
+- [ ] User discoveries are tracked (optional, non-prescriptive)
+- [ ] Starter patterns section provides low-complexity entry points
+- [ ] AI explains changes when user modifies forked patterns
 
 ---
 
