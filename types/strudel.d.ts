@@ -1,5 +1,17 @@
 // Type declarations for Strudel packages
 declare module "@strudel/web" {
+  // Sound registration
+  export function registerSound(
+    name: string,
+    trigger: (
+      time: number,
+      value: Record<string, unknown>,
+      onended: () => void
+    ) => Promise<{ node: AudioNode; stop: (time: number) => void }>
+  ): void;
+  export function getAudioContext(): AudioContext;
+  export function getSoundIndex(n: unknown, length: number): number;
+
   interface StrudelInitOptions {
     drawTime?: [number, number];
     defaultOutput?: "webaudio" | "osc";
@@ -12,6 +24,14 @@ declare module "@strudel/web" {
     baseUrl?: string,
     options?: { tag?: string }
   ): Promise<void>;
+
+  // Sound map for accessing loaded samples (uses nanostores)
+  interface SoundMap {
+    get: () => Record<string, unknown>;
+    set: (value: Record<string, unknown>) => void;
+    setKey: (key: string, value: unknown) => void;
+  }
+  export const soundMap: SoundMap;
 
   interface Scheduler {
     start: () => void;

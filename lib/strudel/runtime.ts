@@ -84,20 +84,33 @@ export async function initStrudel(): Promise<void> {
 
   initPromise = (async () => {
     try {
-      const { initStrudel: init, samples } = await import("@strudel/web");
+      const {
+        initStrudel: init,
+        samples,
+        soundMap,
+        registerSound,
+        getAudioContext,
+        getSoundIndex,
+      } = await import("@strudel/web");
+      const { registerSoundfontsWithRegister } = await import(
+        "./soundfonts"
+      );
 
       // initStrudel returns a promise that resolves to the repl instance
-      // prebake loads the same samples as strudel.cc (from dough-samples)
+      // prebake loads the same samples as strudel.cc
       const ds = "https://raw.githubusercontent.com/felixroos/dough-samples/main";
       const repl = await init({
         prebake: async () => {
           await Promise.all([
-            // Drum machines (tr909, tr808, RolandMC303, etc.)
+            // Full Dirt-Samples library (bd, sd, hh, cp, 808, 909, etc.)
+            // This is the same sample set used by strudel.cc
+            samples(
+              "https://raw.githubusercontent.com/tidalcycles/Dirt-Samples/master/strudel.json"
+            ),
+            // Drum machines with full names (RolandTR909_bd, RolandTR808_bd, etc.)
             samples(`${ds}/tidal-drum-machines.json`),
             // Piano (Salamander Grand Piano)
             samples(`${ds}/piano.json`),
-            // Curated Dirt-Samples (bd, sd, hh, cp, etc.)
-            samples(`${ds}/Dirt-Samples.json`),
             // Emu SP12 sampler
             samples(`${ds}/EmuSP12.json`),
             // VCSL orchestral/percussion samples
@@ -105,6 +118,115 @@ export async function initStrudel(): Promise<void> {
             // Mridangam (Indian percussion)
             samples(`${ds}/mridangam.json`),
           ]);
+
+          // Register General MIDI soundfonts (gm_piano, gm_pad_warm, etc.)
+          // Using custom loader to avoid module duplication issues
+          registerSoundfontsWithRegister(
+            registerSound,
+            getAudioContext,
+            getSoundIndex
+          );
+
+          // Official strudel.cc drum machine bank aliases
+          // Maps full bank names to short aliases (e.g., RolandTR909 -> TR909)
+          const bankAliases: Record<string, string> = {
+            "AJKPercusyn": "Percusyn",
+            "AkaiLinn": "Linn",
+            "AkaiMPC60": "MPC60",
+            "AkaiXR10": "XR10",
+            "AlesisHR16": "HR16",
+            "AlesisSR16": "SR16",
+            "BossDR110": "DR110",
+            "BossDR220": "DR220",
+            "BossDR55": "DR55",
+            "BossDR550": "DR550",
+            "CasioRZ1": "RZ1",
+            "CasioSK1": "SK1",
+            "CasioVL1": "VL1",
+            "DoepferMS404": "MS404",
+            "EmuDrumulator": "Drumulator",
+            "EmuSP12": "SP12",
+            "KorgDDM110": "DDM110",
+            "KorgKPR77": "KPR77",
+            "KorgKR55": "KR55",
+            "KorgKRZ": "KRZ",
+            "KorgM1": "M1",
+            "KorgMinipops": "Minipops",
+            "KorgPoly800": "Poly800",
+            "KorgT3": "T3",
+            "Linn9000": "9000",
+            "LinnLM1": "LM1",
+            "LinnLM2": "LM2",
+            "MoogConcertMateMG1": "ConcertMateMG1",
+            "OberheimDMX": "DMX",
+            "RhodesPolaris": "Polaris",
+            "RhythmAce": "Ace",
+            "RolandCompurhythm1000": "Compurhythm1000",
+            "RolandCompurhythm78": "Compurhythm78",
+            "RolandCompurhythm8000": "Compurhythm8000",
+            "RolandD110": "D110",
+            "RolandD70": "D70",
+            "RolandDDR30": "DDR30",
+            "RolandJD990": "JD990",
+            "RolandMC202": "MC202",
+            "RolandMC303": "MC303",
+            "RolandMT32": "MT32",
+            "RolandR8": "R8",
+            "RolandS50": "S50",
+            "RolandSH09": "SH09",
+            "RolandSystem100": "System100",
+            "RolandTR505": "TR505",
+            "RolandTR606": "TR606",
+            "RolandTR626": "TR626",
+            "RolandTR707": "TR707",
+            "RolandTR727": "TR727",
+            "RolandTR808": "TR808",
+            "RolandTR909": "TR909",
+            "SakataDPM48": "DPM48",
+            "SequentialCircuitsDrumtracks": "CircuitsDrumtracks",
+            "SequentialCircuitsTom": "CircuitsTom",
+            "SimmonsSDS400": "SDS400",
+            "SimmonsSDS5": "SDS5",
+            "SoundmastersR88": "R88",
+            "UnivoxMicroRhythmer12": "MicroRhythmer12",
+            "ViscoSpaceDrum": "SpaceDrum",
+            "XdrumLM8953": "LM8953",
+            "YamahaRM50": "RM50",
+            "YamahaRX21": "RX21",
+            "YamahaRX5": "RX5",
+            "YamahaRY30": "RY30",
+            "YamahaTG33": "TG33",
+          };
+
+          const smap = soundMap.get();
+
+          // Create aliases using official strudel.cc bank mapping
+          // e.g., rolandtr909_bd -> TR909_bd (and also tr909_bd for convenience)
+          for (const [fullBank, shortBank] of Object.entries(bankAliases)) {
+            const fullBankLower = fullBank.toLowerCase();
+            const shortBankLower = shortBank.toLowerCase();
+
+            // Find all samples with this bank prefix
+            for (const key of Object.keys(smap)) {
+              const keyLower = key.toLowerCase();
+              if (keyLower.startsWith(fullBankLower + "_")) {
+                // Get the drum type suffix (e.g., "_bd", "_hh")
+                const suffix = keyLower.slice(fullBankLower.length);
+
+                // Create official case alias: TR909_bd
+                const officialAlias = shortBank + suffix;
+                if (!smap[officialAlias]) {
+                  soundMap.setKey(officialAlias, smap[key]);
+                }
+
+                // Create lowercase alias: tr909_bd
+                const lowerAlias = shortBankLower + suffix;
+                if (!smap[lowerAlias]) {
+                  soundMap.setKey(lowerAlias, smap[key]);
+                }
+              }
+            }
+          }
         },
       });
 
