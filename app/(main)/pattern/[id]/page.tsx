@@ -9,6 +9,7 @@ import { Editor } from "@/components/editor/Editor";
 import { SplitPane } from "@/components/layout/SplitPane";
 import { Header } from "@/components/layout/Header";
 import { Chat } from "@/components/chat/Chat";
+import { RightPanel } from "@/components/layout/RightPanel";
 import { ForkButton } from "@/components/patterns/ForkButton";
 import { Attribution } from "@/components/patterns/Attribution";
 import { Button } from "@/components/ui/button";
@@ -369,17 +370,23 @@ export default function PatternPage() {
     </div>
   );
 
-  // Chat pane content
-  const chatPane = (
-    <Chat
-      messages={messages}
-      onSend={handleSendMessage}
-      onPlayCode={handlePlayChatCode}
-      onStopCode={handleStopChatCode}
+  // Right pane content (Chat + Reference tabs)
+  const rightPane = (
+    <RightPanel
+      onPlay={handlePlayChatCode}
+      onStop={handleStopChatCode}
       playingCode={playingChatCode}
-      isLoading={isLoading}
-      selection={selection}
-    />
+    >
+      <Chat
+        messages={messages}
+        onSend={handleSendMessage}
+        onPlayCode={handlePlayChatCode}
+        onStopCode={handleStopChatCode}
+        playingCode={playingChatCode}
+        isLoading={isLoading}
+        selection={selection}
+      />
+    </RightPanel>
   );
 
   return (
@@ -390,7 +397,7 @@ export default function PatternPage() {
       <div className="flex-1 overflow-hidden">
         <SplitPane
           left={editorPane}
-          right={chatPane}
+          right={rightPane}
           defaultRatio={0.6}
           minLeftWidth={300}
           minRightWidth={280}

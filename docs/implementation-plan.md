@@ -1235,6 +1235,196 @@ Database schema includes `waveformData` column in patterns table, ready for futu
 
 ---
 
+## Slice 9.7: Reference Tab
+
+**Goal:** Interactive reference panel for browsing Strudel functions, inspired by strudel.cc's built-in documentation.
+
+**Dependencies:** Slice 3 (Split Pane + Chat UI)
+
+**Reference:** [strudel.cc Functions](https://strudel.cc/functions/intro/), [@strudel/reference package](https://www.npmjs.com/package/@strudel/reference)
+
+---
+
+### Overview
+
+Add a tabbed interface to the right panel where users can switch between Chat and Reference. The Reference tab provides searchable, categorized documentation for all Strudel functions with playable/copyable examples (reusing the `CodeSuggestion` component from chat).
+
+---
+
+### Files to create:
+
+### `src/lib/strudel/function-reference.ts`
+```typescript
+// Structured function reference data
+//
+// Types:
+export interface FunctionExample {
+  code: string;
+  description?: string;
+}
+
+export interface FunctionDef {
+  name: string;
+  description: string;
+  signature?: string; // e.g., "s(pattern: string)"
+  examples: FunctionExample[];
+  aliases?: string[];
+  related?: string[];
+}
+
+export interface Category {
+  name: string;
+  description?: string;
+  functions: FunctionDef[];
+}
+
+// Categories to include:
+// - Sound Sources (s, sound, note, n, synth sounds)
+// - Mini Notation (syntax reference)
+// - Pattern Modifiers (fast, slow, rev, etc.)
+// - Effects (lpf, hpf, delay, room, etc.)
+// - Layering (stack, cat, seq)
+// - Randomness (sometimes, rarely, shuffle, etc.)
+// - Signals (sine, saw, rand, perlin)
+
+export const FUNCTION_REFERENCE: Category[] = [
+  // ... populated with function data
+];
+```
+
+### `src/components/reference/ReferencePanel.tsx`
+```typescript
+// Main reference panel container
+// Props:
+// - onPlay: (code: string) => void
+// - onStop: () => void
+// - playingCode: string | null
+//
+// Features:
+// - Search input at top (filters functions by name/description)
+// - Category sections (collapsible)
+// - Scrollable function list
+// - When searching: show flat list of matching functions
+// - When not searching: show categorized view
+```
+
+### `src/components/reference/CategorySection.tsx`
+```typescript
+// Collapsible category section
+// Props:
+// - category: Category
+// - isExpanded: boolean
+// - onToggle: () => void
+// - searchQuery: string (for highlighting matches)
+// - onPlay: (code: string) => void
+// - onStop: () => void
+// - playingCode: string | null
+//
+// Features:
+// - Chevron icon for expand/collapse
+// - Function count badge
+// - Lists FunctionCard components when expanded
+```
+
+### `src/components/reference/FunctionCard.tsx`
+```typescript
+// Individual function documentation card
+// Props:
+// - fn: FunctionDef
+// - onPlay: (code: string) => void
+// - onStop: () => void
+// - playingCode: string | null
+// - defaultExpanded?: boolean
+//
+// Features:
+// - Function name (clickable to expand/collapse)
+// - Signature display (if provided)
+// - Expandable description
+// - Examples rendered using CodeSuggestion component (Play + Copy buttons)
+// - Aliases shown if present
+// - Related functions as links
+```
+
+### `src/components/layout/RightPanel.tsx`
+```typescript
+// Tabbed container for Chat and Reference
+// Props:
+// - activeTab: 'chat' | 'reference'
+// - onTabChange: (tab: 'chat' | 'reference') => void
+// - children: React.ReactNode (chat content)
+// - onPlay: (code: string) => void
+// - onStop: () => void
+// - playingCode: string | null
+//
+// Features:
+// - Tab bar at top: Chat | Reference
+// - Renders Chat children or ReferencePanel based on active tab
+// - Persists active tab to localStorage
+```
+
+---
+
+### Files to modify:
+
+### `src/app/(main)/editor/[id]/page.tsx`
+```typescript
+// Replace direct Chat with RightPanel
+// - Wrap Chat in RightPanel
+// - Pass onPlay/onStop/playingCode for reference examples
+// - Handle tab state
+```
+
+### `src/app/(main)/editor/new/page.tsx`
+```typescript
+// Same changes as editor/[id]/page.tsx
+```
+
+### `src/app/(main)/pattern/[id]/page.tsx`
+```typescript
+// Same changes for read-only view
+// - Reference tab works the same (examples are playable)
+```
+
+---
+
+### Implementation Notes:
+
+1. **Data Source:**
+   - Start with curated reference data based on existing `lib/strudel/reference.ts`
+   - Can migrate to `@strudel/reference` package later if needed
+   - Focus on most commonly used functions first
+
+2. **Search Implementation:**
+   - Search function names and descriptions (case-insensitive substring match)
+   - Highlight matches in results
+   - Show results as flat list when searching (ignore categories)
+   - Clear button to reset search
+
+3. **Reuse CodeSuggestion Component:**
+   - Examples use existing `components/chat/CodeSuggestion.tsx`
+   - Already has Play/Stop and Copy functionality
+   - Provides consistent UX between chat and reference
+
+4. **Styling:**
+   - Match existing dark theme
+   - Use consistent spacing and typography
+   - Tab bar styled to match chat header
+
+---
+
+**Acceptance Criteria:**
+- [x] Right panel has Chat and Reference tabs
+- [x] Reference tab shows searchable function list
+- [x] Functions organized by category (collapsible sections)
+- [x] Each function shows name, description, and examples
+- [x] Examples are playable (Play/Stop buttons via CodeSuggestion)
+- [x] Examples are copyable (Copy button via CodeSuggestion)
+- [x] Search filters functions by name and description
+- [x] Search shows flat results, clearing search restores categories
+- [x] Tab preference persists across sessions
+
+---
+
 ## Slice 10: Retrospective Learning
 
 **Goal:** Discovery-based learning where AI surfaces theory from user creations, not prescriptive curriculum.
@@ -1498,6 +1688,7 @@ Slice 7 (Save/Load)
 Slice 8 (Sharing + Fork)
 Slice 9 (Gallery)
 Slice 9.5 (UX Refactor)
+Slice 9.7 (Reference Tab)
 Slice 10 (Learning Paths)
 Slice 11 (Polish)
 --- MVP Launch ---
