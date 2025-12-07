@@ -31,6 +31,7 @@ import {
 import { Loader2 } from "lucide-react";
 import type { AnalysisResponse } from "@/lib/ai/analysis-prompt";
 import { useDocsTooltip } from "@/hooks/useDocsTooltip";
+import { useAnnotations } from "@/hooks/useAnnotations";
 
 interface PatternData {
   id: string;
@@ -82,6 +83,15 @@ export default function EditorPage() {
 
   // Docs tooltip state
   const { enabled: docsEnabled, setEnabled: setDocsEnabled } = useDocsTooltip();
+
+  // Annotations state
+  const {
+    annotations,
+    isAnalyzing: isAnalyzingAnnotations,
+    enabled: annotationsEnabled,
+    setEnabled: setAnnotationsEnabled,
+    handleCodeChange: handleAnnotationCodeChange,
+  } = useAnnotations();
 
   // Fetch pattern on mount
   useEffect(() => {
@@ -351,6 +361,15 @@ export default function EditorPage() {
     }
   }, [currentPattern]);
 
+  // Handle code changes - update state and annotations
+  const handleCodeChange = useCallback(
+    (newCode: string) => {
+      setCode(newCode);
+      handleAnnotationCodeChange(newCode);
+    },
+    [handleAnnotationCodeChange]
+  );
+
   // Show loading while checking auth or loading pattern
   if (sessionLoading || patternLoading) {
     return (
@@ -384,11 +403,12 @@ export default function EditorPage() {
       <div className="flex-1 overflow-hidden">
         <Editor
           value={code}
-          onChange={setCode}
+          onChange={handleCodeChange}
           onEvaluate={handleEvaluate}
           onSelectionChange={setSelection}
           highlights={highlights}
           docsEnabled={docsEnabled}
+          annotations={annotations}
         />
       </div>
     </div>
@@ -448,6 +468,9 @@ export default function EditorPage() {
         hasCurrentPattern={!!currentPattern}
         docsEnabled={docsEnabled}
         onDocsToggle={setDocsEnabled}
+        annotationsEnabled={annotationsEnabled}
+        onAnnotationsToggle={setAnnotationsEnabled}
+        isAnalyzingAnnotations={isAnalyzingAnnotations}
       />
 
       {/* Save Dialog */}

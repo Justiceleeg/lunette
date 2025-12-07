@@ -15,6 +15,7 @@ import { useSession } from "@/lib/auth-client";
 import type { RuntimeState, EditorSelection } from "@/lib/strudel/tools";
 import type { AnalysisResponse } from "@/lib/ai/analysis-prompt";
 import { useDocsTooltip } from "@/hooks/useDocsTooltip";
+import { useAnnotations } from "@/hooks/useAnnotations";
 import {
   initStrudel,
   evaluate,
@@ -65,6 +66,15 @@ export default function NewEditorPage() {
 
   // Docs tooltip state
   const { enabled: docsEnabled, setEnabled: setDocsEnabled } = useDocsTooltip();
+
+  // Annotations state
+  const {
+    annotations,
+    isAnalyzing: isAnalyzingAnnotations,
+    enabled: annotationsEnabled,
+    setEnabled: setAnnotationsEnabled,
+    handleCodeChange: handleAnnotationCodeChange,
+  } = useAnnotations();
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -298,6 +308,15 @@ export default function NewEditorPage() {
     }
   }, [currentPattern]);
 
+  // Handle code changes - update state and annotations
+  const handleCodeChange = useCallback(
+    (newCode: string) => {
+      setCode(newCode);
+      handleAnnotationCodeChange(newCode);
+    },
+    [handleAnnotationCodeChange]
+  );
+
   // Show loading while checking auth
   if (sessionLoading) {
     return (
@@ -321,11 +340,12 @@ export default function NewEditorPage() {
       <div className="flex-1 overflow-hidden">
         <Editor
           value={code}
-          onChange={setCode}
+          onChange={handleCodeChange}
           onEvaluate={handleEvaluate}
           onSelectionChange={setSelection}
           highlights={highlights}
           docsEnabled={docsEnabled}
+          annotations={annotations}
         />
       </div>
     </div>
@@ -385,6 +405,9 @@ export default function NewEditorPage() {
         hasCurrentPattern={!!currentPattern}
         docsEnabled={docsEnabled}
         onDocsToggle={setDocsEnabled}
+        annotationsEnabled={annotationsEnabled}
+        onAnnotationsToggle={setAnnotationsEnabled}
+        isAnalyzingAnnotations={isAnalyzingAnnotations}
       />
 
       {/* Save Dialog */}
