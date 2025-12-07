@@ -18,10 +18,10 @@ export function Header() {
             Browse
           </Link>
           <Link
-            href="/gallery"
+            href="/explore"
             className="text-sm text-subtext-color hover:text-default-font transition-colors"
           >
-            My Patterns
+            Explore
           </Link>
           <Link
             href="/editor/new"

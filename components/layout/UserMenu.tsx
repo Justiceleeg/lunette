@@ -9,7 +9,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { LogOut, Settings } from "lucide-react";
+import { LogOut, Music, Settings } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
 
@@ -71,6 +71,12 @@ export function UserMenu() {
           </p>
         </div>
         <DropdownMenuSeparator />
+        <DropdownMenuItem asChild>
+          <Link href="/gallery" className="cursor-pointer">
+            <Music className="mr-2 size-4" />
+            My Patterns
+          </Link>
+        </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link href="/settings" className="cursor-pointer">
             <Settings className="mr-2 size-4" />

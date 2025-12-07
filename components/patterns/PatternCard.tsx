@@ -3,7 +3,7 @@
 import { useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
-import { Play, Square, Loader2 } from "lucide-react";
+import { Play, Square, Loader2, Pencil } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ForkButton } from "./ForkButton";
 
