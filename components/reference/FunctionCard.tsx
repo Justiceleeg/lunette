@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { CodeSuggestion } from "@/components/chat/CodeSuggestion";
-import type { FunctionDef } from "@/lib/strudel/function-reference";
+import type { FunctionDef } from "@/lib/strudel/strudel-reference";
 
 interface FunctionCardProps {
   fn: FunctionDef;

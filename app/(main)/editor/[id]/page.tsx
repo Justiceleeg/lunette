@@ -30,6 +30,7 @@ import {
 } from "@/lib/strudel/runtime";
 import { Loader2 } from "lucide-react";
 import type { AnalysisResponse } from "@/lib/ai/analysis-prompt";
+import { useDocsTooltip } from "@/hooks/useDocsTooltip";
 
 interface PatternData {
   id: string;
@@ -78,6 +79,9 @@ export default function EditorPage() {
   // Insights state (stored with pattern)
   const [savedInsights, setSavedInsights] = useState<AnalysisResponse | null>(null);
   const [savedCodeHash, setSavedCodeHash] = useState<string | null>(null);
+
+  // Docs tooltip state
+  const { enabled: docsEnabled, setEnabled: setDocsEnabled } = useDocsTooltip();
 
   // Fetch pattern on mount
   useEffect(() => {
@@ -384,6 +388,7 @@ export default function EditorPage() {
           onEvaluate={handleEvaluate}
           onSelectionChange={setSelection}
           highlights={highlights}
+          docsEnabled={docsEnabled}
         />
       </div>
     </div>
@@ -441,6 +446,8 @@ export default function EditorPage() {
         hasUnsavedChanges={hasUnsavedChanges}
         isAuthenticated={isAuthenticated}
         hasCurrentPattern={!!currentPattern}
+        docsEnabled={docsEnabled}
+        onDocsToggle={setDocsEnabled}
       />
 
       {/* Save Dialog */}

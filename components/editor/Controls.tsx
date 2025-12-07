@@ -5,6 +5,7 @@ import { Play, Square, RotateCcw, Save, Circle, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
+import { DocsToggle } from "./DocsToggle";
 
 interface ControlsProps {
   isPlaying: boolean;
@@ -20,6 +21,8 @@ interface ControlsProps {
   hasUnsavedChanges?: boolean;
   isAuthenticated?: boolean;
   hasCurrentPattern?: boolean;
+  docsEnabled?: boolean;
+  onDocsToggle?: (enabled: boolean) => void;
 }
 
 export function Controls({
@@ -36,6 +39,8 @@ export function Controls({
   hasUnsavedChanges,
   isAuthenticated,
   hasCurrentPattern,
+  docsEnabled = true,
+  onDocsToggle,
 }: ControlsProps) {
   // Local state for typing - allows intermediate values
   const [bpmInput, setBpmInput] = useState(bpm.toString());
@@ -124,27 +129,35 @@ export function Controls({
         )}
       </div>
 
-      {/* BPM Control */}
-      <div className="flex items-center gap-2">
-        <label htmlFor="bpm" className="text-sm text-muted-foreground">
-          BPM
-        </label>
-        <Input
-          id="bpm"
-          type="number"
-          min={20}
-          max={300}
-          value={bpmInput}
-          onChange={(e) => setBpmInput(e.target.value)}
-          onBlur={applyBpm}
-          onKeyDown={(e) => {
-            if (e.key === "Enter") {
-              applyBpm();
-              e.currentTarget.blur();
-            }
-          }}
-          className="w-20 h-8 text-center"
-        />
+      {/* Right side controls */}
+      <div className="flex items-center gap-4">
+        {/* Docs Toggle */}
+        {onDocsToggle && (
+          <DocsToggle enabled={docsEnabled} onChange={onDocsToggle} />
+        )}
+
+        {/* BPM Control */}
+        <div className="flex items-center gap-2">
+          <label htmlFor="bpm" className="text-sm text-muted-foreground">
+            BPM
+          </label>
+          <Input
+            id="bpm"
+            type="number"
+            min={20}
+            max={300}
+            value={bpmInput}
+            onChange={(e) => setBpmInput(e.target.value)}
+            onBlur={applyBpm}
+            onKeyDown={(e) => {
+              if (e.key === "Enter") {
+                applyBpm();
+                e.currentTarget.blur();
+              }
+            }}
+            className="w-20 h-8 text-center"
+          />
+        </div>
       </div>
 
       {/* Error Display */}

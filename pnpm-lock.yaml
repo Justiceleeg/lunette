@@ -41,6 +41,9 @@ importers:
       '@radix-ui/react-slot':
         specifier: ^1.2.4
         version: 1.2.4(@types/react@19.2.7)(react@19.2.0)
+      '@strudel/reference':
+        specifier: ^1.2.1
+        version: 1.2.1
       '@strudel/web':
         specifier: ^1.2.6
         version: 1.2.6
@@ -1214,6 +1217,9 @@ packages:
 
   '@strudel/mini@1.2.5':
     resolution: {integrity: sha512-GmTWSBt49C3ogBy0hjM3bmf6K12PaJ1JJLsEvQu7j5J+lUd2n7GmLYR1UL6fntY4yVqT8ZwMhfUf6vIgUCTNbw==}
+
+  '@strudel/reference@1.2.1':
+    resolution: {integrity: sha512-WXVfbFl7ux92tcip0WZRt1Y3brdVPE+pja+j2tazZX3smndVpusbTA7Q/Nr39vfyJrxJAg5U1IOgtjzHafmlDQ==}
 
   '@strudel/tonal@1.2.5':
     resolution: {integrity: sha512-mX3uW0nWH8Sa52HTLwnxlR5BrejFX77abeaiMbp+kQCMrX9I+XRdf8rEr7gdeInB6f/y2TzTVFpnsNsB5jLdoA==}
@@ -4418,6 +4424,8 @@ snapshots:
   '@strudel/mini@1.2.5':
     dependencies:
       '@strudel/core': 1.2.5
+
+  '@strudel/reference@1.2.1': {}
 
   '@strudel/tonal@1.2.5':
     dependencies:

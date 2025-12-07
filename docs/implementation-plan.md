@@ -1602,14 +1602,14 @@ export const conceptDescriptions: Record<string, string> = {
 
 **Acceptance Criteria:**
 - [ ] "Explain This" button triggers AI analysis of current pattern
-- [ ] Analysis identifies and names music theory concepts present
-- [ ] Patterns can be tagged with concepts (auto or manual)
-- [ ] Gallery can be filtered by concept
-- [ ] `/explore` page shows concept-organized view
-- [ ] Concept badges link to related patterns
-- [ ] User discoveries are tracked (optional, non-prescriptive)
-- [ ] Starter patterns section provides low-complexity entry points
-- [ ] AI explains changes when user modifies forked patterns
+- [x] Analysis identifies and names music theory concepts present
+- [x] Patterns can be tagged with concepts (auto or manual)
+- [x] Gallery can be filtered by concept
+- [x] `/explore` page shows concept-organized view
+- [x] Concept badges link to related patterns
+- [x] User discoveries are tracked (optional, non-prescriptive)
+- [x] Starter patterns section provides low-complexity entry points
+- [x] AI explains changes when user modifies forked patterns
 
 ---
 

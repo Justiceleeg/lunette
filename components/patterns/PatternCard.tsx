@@ -23,6 +23,7 @@ interface PatternCardProps {
     createdAt: string;
     updatedAt: string;
     forkedFromId: string | null;
+    originalAuthorId: string | null;
     author: Author | null;
   };
   isPlaying: boolean;
@@ -32,6 +33,7 @@ interface PatternCardProps {
   onForkSuccess?: (newPatternId: string) => void;
   isAuthenticated: boolean;
   currentUserId?: string;
+  showEditButton?: boolean;
 }
 
 export function PatternCard({
@@ -43,6 +45,7 @@ export function PatternCard({
   onForkSuccess,
   isAuthenticated,
   currentUserId,
+  showEditButton = false,
 }: PatternCardProps) {
   const isOwner = currentUserId === pattern.authorId;
 
@@ -126,6 +129,16 @@ export function PatternCard({
             patternCode={pattern.code}
             onForkSuccess={onForkSuccess}
           />
+        )}
+
+        {/* Edit button - only show if owner and showEditButton is true */}
+        {showEditButton && isOwner && (
+          <Link href={`/editor/${pattern.id}`}>
+            <Button size="sm" variant="outline" className="gap-1">
+              <Pencil className="h-3 w-3" />
+              Edit
+            </Button>
+          </Link>
         )}
 
         {/* Date on the right */}

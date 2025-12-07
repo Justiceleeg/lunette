@@ -9,6 +9,7 @@ import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { StateField, StateEffect } from "@codemirror/state";
 import { basicSetup } from "codemirror";
 import type { EditorSelection } from "@/lib/strudel/tools";
+import { createStrudelDocsExtension } from "./strudelDocsExtension";
 
 interface EditorProps {
   value: string;
@@ -17,6 +18,7 @@ interface EditorProps {
   onSelectionChange?: (selection: EditorSelection | null) => void;
   highlights?: Array<{ start: number; end: number }>;
   readOnly?: boolean;
+  docsEnabled?: boolean;
 }
 
 // StateEffect for updating highlights
@@ -57,7 +59,7 @@ const highlightField = StateField.define<DecorationSet>({
   provide: (f) => EditorView.decorations.from(f),
 });
 
-export function Editor({ value, onChange, onEvaluate, onSelectionChange, highlights = [], readOnly = false }: EditorProps) {
+export function Editor({ value, onChange, onEvaluate, onSelectionChange, highlights = [], readOnly = false, docsEnabled = true }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const onEvaluateRef = useRef(onEvaluate);
@@ -65,6 +67,7 @@ export function Editor({ value, onChange, onEvaluate, onSelectionChange, highlig
   const onSelectionChangeRef = useRef(onSelectionChange);
   const initialValueRef = useRef(value);
   const readOnlyRef = useRef(readOnly);
+  const docsEnabledRef = useRef(docsEnabled);
 
   // Keep refs updated
   useEffect(() => {
@@ -72,7 +75,8 @@ export function Editor({ value, onChange, onEvaluate, onSelectionChange, highlig
     onChangeRef.current = onChange;
     onSelectionChangeRef.current = onSelectionChange;
     readOnlyRef.current = readOnly;
-  }, [onEvaluate, onChange, onSelectionChange, readOnly]);
+    docsEnabledRef.current = docsEnabled;
+  }, [onEvaluate, onChange, onSelectionChange, readOnly, docsEnabled]);
 
   // Create evaluate keymap
   const evaluateKeymap = useCallback(() => {
@@ -150,6 +154,11 @@ export function Editor({ value, onChange, onEvaluate, onSelectionChange, highlig
       extensions.push(EditorState.readOnly.of(true));
     }
 
+    // Add docs tooltip extension if enabled
+    if (docsEnabledRef.current) {
+      extensions.push(createStrudelDocsExtension());
+    }
+
     const state = EditorState.create({
       doc: initialValueRef.current,
       extensions,
@@ -166,7 +175,7 @@ export function Editor({ value, onChange, onEvaluate, onSelectionChange, highlig
       view.destroy();
       viewRef.current = null;
     };
-  }, [evaluateKeymap]);
+  }, [evaluateKeymap, docsEnabled]);
 
   // Update value from outside
   useEffect(() => {

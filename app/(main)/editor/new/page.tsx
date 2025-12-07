@@ -14,6 +14,7 @@ import { ShareDialog } from "@/components/patterns/ShareDialog";
 import { useSession } from "@/lib/auth-client";
 import type { RuntimeState, EditorSelection } from "@/lib/strudel/tools";
 import type { AnalysisResponse } from "@/lib/ai/analysis-prompt";
+import { useDocsTooltip } from "@/hooks/useDocsTooltip";
 import {
   initStrudel,
   evaluate,
@@ -61,6 +62,9 @@ export default function NewEditorPage() {
   // Insights state (populated on save)
   const [savedInsights, setSavedInsights] = useState<AnalysisResponse | null>(null);
   const [savedCodeHash, setSavedCodeHash] = useState<string | null>(null);
+
+  // Docs tooltip state
+  const { enabled: docsEnabled, setEnabled: setDocsEnabled } = useDocsTooltip();
 
   // Redirect to login if not authenticated
   useEffect(() => {
@@ -321,6 +325,7 @@ export default function NewEditorPage() {
           onEvaluate={handleEvaluate}
           onSelectionChange={setSelection}
           highlights={highlights}
+          docsEnabled={docsEnabled}
         />
       </div>
     </div>
@@ -378,6 +383,8 @@ export default function NewEditorPage() {
         hasUnsavedChanges={hasUnsavedChanges}
         isAuthenticated={isAuthenticated}
         hasCurrentPattern={!!currentPattern}
+        docsEnabled={docsEnabled}
+        onDocsToggle={setDocsEnabled}
       />
 
       {/* Save Dialog */}

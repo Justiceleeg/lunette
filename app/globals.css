@@ -184,6 +184,49 @@
   background-color: rgb(31, 41, 55);
 }
 
+/* Strudel Docs Tooltip */
+.cm-docs-tooltip {
+  background: rgb(17, 24, 39); /* neutral-50 */
+  border: 1px solid rgb(55, 65, 81); /* neutral-200 */
+  border-radius: 6px;
+  padding: 8px 12px;
+  max-width: 300px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 13px;
+  line-height: 1.4;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  color: rgb(249, 250, 251); /* neutral-900 */
+}
+
+.cm-docs-tooltip__signature {
+  color: rgb(5, 162, 194); /* brand-600 */
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.cm-docs-tooltip__description {
+  color: rgb(156, 163, 175); /* neutral-500 / subtext */
+}
+
+.cm-docs-tooltip__aliases {
+  color: rgb(107, 114, 128); /* neutral-400 */
+  font-size: 11px;
+  margin-top: 4px;
+  font-style: italic;
+}
+
+.cm-docs-tooltip__hint {
+  color: rgb(156, 163, 175);
+  font-size: 11px;
+  margin-top: 6px;
+  opacity: 0.7;
+}
+
+/* CodeMirror tooltip positioning override */
+.cm-tooltip {
+  z-index: 100;
+}
+
 @theme inline {
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);

@@ -32,6 +32,8 @@ import {
 } from "@/lib/strudel/runtime";
 import { Play, Square, RotateCcw, ExternalLink, Loader2 } from "lucide-react";
 import type { AnalysisResponse } from "@/lib/ai/analysis-prompt";
+import { useDocsTooltip } from "@/hooks/useDocsTooltip";
+import { DocsToggle } from "@/components/editor/DocsToggle";
 
 interface Author {
   id: string;
@@ -85,6 +87,9 @@ export default function PatternPage() {
   // Chat preview state
   const [playingChatCode, setPlayingChatCode] = useState<string | null>(null);
   const [selection, setSelection] = useState<EditorSelection | null>(null);
+
+  // Docs tooltip state
+  const { enabled: docsEnabled, setEnabled: setDocsEnabled } = useDocsTooltip();
 
   // Fetch pattern
   useEffect(() => {
@@ -368,6 +373,7 @@ export default function PatternPage() {
           onSelectionChange={setSelection}
           highlights={highlights}
           readOnly
+          docsEnabled={docsEnabled}
         />
       </div>
     </div>
@@ -476,10 +482,16 @@ export default function PatternPage() {
           )}
         </div>
 
-        {/* BPM Display */}
-        <div className="flex items-center gap-2">
-          <span className="text-sm text-muted-foreground">BPM</span>
-          <span className="text-sm font-medium w-12 text-center">{bpm}</span>
+        {/* Right side controls */}
+        <div className="flex items-center gap-4">
+          {/* Docs Toggle */}
+          <DocsToggle enabled={docsEnabled} onChange={setDocsEnabled} />
+
+          {/* BPM Display */}
+          <div className="flex items-center gap-2">
+            <span className="text-sm text-muted-foreground">BPM</span>
+            <span className="text-sm font-medium w-12 text-center">{bpm}</span>
+          </div>
         </div>
       </div>
     </main>

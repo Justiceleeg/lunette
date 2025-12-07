@@ -21,6 +21,7 @@
     "@radix-ui/react-dialog": "^1.1.15",
     "@radix-ui/react-dropdown-menu": "^2.1.16",
     "@radix-ui/react-slot": "^1.2.4",
+    "@strudel/reference": "^1.2.1",
     "@strudel/web": "^1.2.6",
     "ai": "^5.0.106",
     "better-auth": "^1.4.4",

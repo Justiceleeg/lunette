@@ -4,7 +4,7 @@ import { useState } from "react";
 import { ChevronDown, ChevronRight } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { FunctionCard } from "./FunctionCard";
-import type { Category } from "@/lib/strudel/function-reference";
+import type { Category } from "@/lib/strudel/strudel-reference";
 
 interface CategorySectionProps {
   category: Category;

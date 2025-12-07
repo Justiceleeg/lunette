@@ -6,8 +6,8 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { CategorySection } from "./CategorySection";
 import { FunctionCard } from "./FunctionCard";
-import { FUNCTION_REFERENCE } from "@/lib/strudel/function-reference";
-import type { FunctionDef } from "@/lib/strudel/function-reference";
+import { STRUDEL_REFERENCE } from "@/lib/strudel/strudel-reference";
+import type { FunctionDef } from "@/lib/strudel/strudel-reference";
 
 interface ReferencePanelProps {
   onPlay: (code: string) => void;
@@ -29,7 +29,7 @@ export function ReferencePanel({
     const query = searchQuery.toLowerCase();
     const results: FunctionDef[] = [];
 
-    for (const category of FUNCTION_REFERENCE) {
+    for (const category of STRUDEL_REFERENCE) {
       for (const fn of category.functions) {
         if (
           fn.name.toLowerCase().includes(query) ||
@@ -103,7 +103,7 @@ export function ReferencePanel({
         ) : (
           // Category view
           <div>
-            {FUNCTION_REFERENCE.map((category, index) => (
+            {STRUDEL_REFERENCE.map((category, index) => (
               <CategorySection
                 key={category.name}
                 category={category}
