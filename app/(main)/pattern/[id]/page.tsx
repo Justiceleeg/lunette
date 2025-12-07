@@ -31,6 +31,7 @@ import {
   getLastError,
 } from "@/lib/strudel/runtime";
 import { Play, Square, RotateCcw, ExternalLink, Loader2 } from "lucide-react";
+import type { AnalysisResponse } from "@/lib/ai/analysis-prompt";
 
 interface Author {
   id: string;
@@ -57,6 +58,8 @@ interface PatternWithAuthor {
   author: Author | null;
   originalAuthor: Author | null;
   forkedFrom: ForkedFrom | null;
+  insights?: string | null;
+  insightsCodeHash?: string | null;
 }
 
 export default function PatternPage() {
@@ -370,12 +373,27 @@ export default function PatternPage() {
     </div>
   );
 
-  // Right pane content (Chat + Reference tabs)
+  // Parse saved insights if available
+  const savedInsights: AnalysisResponse | null = pattern?.insights
+    ? (() => {
+        try {
+          return JSON.parse(pattern.insights) as AnalysisResponse;
+        } catch {
+          return null;
+        }
+      })()
+    : null;
+
+  // Right pane content (Chat + Insights + Reference tabs)
   const rightPane = (
     <RightPanel
       onPlay={handlePlayChatCode}
       onStop={handleStopChatCode}
       playingCode={playingChatCode}
+      code={pattern?.code || ""}
+      savedInsights={savedInsights}
+      savedCodeHash={pattern?.insightsCodeHash || null}
+      isOwner={false}
     >
       <Chat
         messages={messages}

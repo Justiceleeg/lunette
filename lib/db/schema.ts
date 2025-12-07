@@ -1,4 +1,4 @@
-import { pgTable, text, timestamp, boolean } from "drizzle-orm/pg-core";
+import { pgTable, text, timestamp, boolean, real } from "drizzle-orm/pg-core";
 
 export const users = pgTable("users", {
   id: text("id").primaryKey(),
@@ -61,6 +61,30 @@ export const patterns = pgTable("patterns", {
   forkedFromId: text("forked_from_id"),
   isPublic: boolean("is_public").default(false),
   waveformData: text("waveform_data"), // JSON stringified array of amplitudes
+  insights: text("insights"), // JSON: { concepts: string[], explanation: string, suggestions: string[] }
+  insightsCodeHash: text("insights_code_hash"), // Hash of code when insights were generated
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Concept tags for patterns - auto-tagging with music theory concepts
+export const conceptTags = pgTable("concept_tags", {
+  id: text("id").primaryKey(),
+  patternId: text("pattern_id")
+    .references(() => patterns.id, { onDelete: "cascade" })
+    .notNull(),
+  concept: text("concept").notNull(), // e.g., 'syncopation', 'polyrhythm'
+  confidence: real("confidence").default(1.0), // AI confidence score
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Track which concepts a user has encountered (discovered, not "completed")
+export const userDiscoveries = pgTable("user_discoveries", {
+  id: text("id").primaryKey(),
+  userId: text("user_id")
+    .references(() => users.id, { onDelete: "cascade" })
+    .notNull(),
+  concept: text("concept").notNull(),
+  firstSeenAt: timestamp("first_seen_at").defaultNow().notNull(),
+  patternId: text("pattern_id").references(() => patterns.id), // pattern where they first encountered it
 });

@@ -13,6 +13,7 @@ import { SaveDialog, type Pattern } from "@/components/patterns/SaveDialog";
 import { ShareDialog } from "@/components/patterns/ShareDialog";
 import { useSession } from "@/lib/auth-client";
 import type { RuntimeState, EditorSelection } from "@/lib/strudel/tools";
+import type { AnalysisResponse } from "@/lib/ai/analysis-prompt";
 import {
   initStrudel,
   evaluate,
@@ -57,12 +58,25 @@ export default function NewEditorPage() {
   const { data: session, isPending: sessionLoading } = useSession();
   const isAuthenticated = !!session?.user;
 
+  // Insights state (populated on save)
+  const [savedInsights, setSavedInsights] = useState<AnalysisResponse | null>(null);
+  const [savedCodeHash, setSavedCodeHash] = useState<string | null>(null);
+
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!sessionLoading && !isAuthenticated) {
       router.push("/login");
     }
   }, [sessionLoading, isAuthenticated, router]);
+
+  // Check for starter code from explore page
+  useEffect(() => {
+    const starterCode = sessionStorage.getItem("starterCode");
+    if (starterCode) {
+      setCode(starterCode);
+      sessionStorage.removeItem("starterCode");
+    }
+  }, []);
 
   // Track unsaved changes - for new patterns, any code change is unsaved
   const hasUnsavedChanges = useMemo(() => {
@@ -262,6 +276,16 @@ export default function NewEditorPage() {
     setCurrentPattern(pattern);
     // Update URL to the new pattern ID without navigation
     window.history.replaceState(null, "", `/editor/${pattern.id}`);
+    // Update insights from the saved pattern (API generates them on save)
+    if (pattern.insights) {
+      try {
+        const insights = JSON.parse(pattern.insights) as AnalysisResponse;
+        setSavedInsights(insights);
+        setSavedCodeHash(pattern.insightsCodeHash || null);
+      } catch {
+        // Invalid JSON, ignore
+      }
+    }
   }, []);
 
   const handleVisibilityChange = useCallback((isPublic: boolean) => {
@@ -302,12 +326,15 @@ export default function NewEditorPage() {
     </div>
   );
 
-  // Right pane content (Chat + Reference tabs)
+  // Right pane content (Chat + Insights + Reference tabs)
   const rightPane = (
     <RightPanel
       onPlay={handlePlayChatCode}
       onStop={handleStopChatCode}
       playingCode={playingChatCode}
+      code={code}
+      savedInsights={savedInsights}
+      savedCodeHash={savedCodeHash}
     >
       <Chat
         messages={messages}

@@ -1,8 +1,9 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { patterns, users } from "@/lib/db/schema";
+import { patterns, users, conceptTags } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { headers } from "next/headers";
+import { generateInsights } from "@/lib/ai/generate-insights";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -142,6 +143,112 @@ export async function PUT(req: Request, { params }: RouteParams) {
       updates.name = name.trim();
     }
 
+    // Track if code is being updated
+    let codeChanged = false;
+
+    if (code !== undefined) {
+      if (typeof code !== "string") {
+        return Response.json({ error: "Invalid code" }, { status: 400 });
+      }
+      updates.code = code;
+      codeChanged = code !== existingPattern.code;
+    }
+
+    if (isPublic !== undefined) {
+      updates.isPublic = Boolean(isPublic);
+    }
+
+    // Regenerate insights if code changed
+    if (codeChanged && code) {
+      const insightsResult = await generateInsights(code);
+      if (insightsResult) {
+        updates.insights = insightsResult.insightsJson;
+        updates.insightsCodeHash = insightsResult.codeHash;
+
+        // Update concept tags
+        await db.delete(conceptTags).where(eq(conceptTags.patternId, id));
+        if (insightsResult.insights.concepts.length > 0) {
+          await db.insert(conceptTags).values(
+            insightsResult.insights.concepts.map((concept) => ({
+              id: crypto.randomUUID(),
+              patternId: id,
+              concept,
+              confidence: 1.0,
+            }))
+          );
+        }
+      }
+    }
+
+    await db.update(patterns).set(updates).where(eq(patterns.id, id));
+
+    // Fetch updated pattern
+    const [updatedPattern] = await db
+      .select()
+      .from(patterns)
+      .where(eq(patterns.id, id))
+      .limit(1);
+
+    return Response.json({ pattern: updatedPattern });
+  } catch (error) {
+    console.error("Error updating pattern:", error);
+    return Response.json(
+      {
+        error: "Failed to update pattern",
+        details: error instanceof Error ? error.message : String(error),
+      },
+      { status: 500 }
+    );
+  }
+}
+
+// PATCH - partial update (for insights, etc.)
+export async function PATCH(req: Request, { params }: RouteParams) {
+  try {
+    const { id } = await params;
+    const headersList = await headers();
+    const session = await auth.api.getSession({
+      headers: headersList,
+    });
+
+    if (!session?.user) {
+      return Response.json({ error: "Unauthorized" }, { status: 401 });
+    }
+
+    // Check if pattern exists and user owns it
+    const [existingPattern] = await db
+      .select()
+      .from(patterns)
+      .where(and(eq(patterns.id, id), eq(patterns.authorId, session.user.id)))
+      .limit(1);
+
+    if (!existingPattern) {
+      return Response.json({ error: "Pattern not found" }, { status: 404 });
+    }
+
+    const body = await req.json();
+    const { insights, insightsCodeHash, name, code, isPublic } = body;
+
+    const updates: Partial<typeof patterns.$inferInsert> = {
+      updatedAt: new Date(),
+    };
+
+    // Handle insights update
+    if (insights !== undefined) {
+      updates.insights = insights;
+    }
+    if (insightsCodeHash !== undefined) {
+      updates.insightsCodeHash = insightsCodeHash;
+    }
+
+    // Also support other fields for flexibility
+    if (name !== undefined) {
+      if (typeof name !== "string" || name.trim() === "") {
+        return Response.json({ error: "Name cannot be empty" }, { status: 400 });
+      }
+      updates.name = name.trim();
+    }
+
     if (code !== undefined) {
       if (typeof code !== "string") {
         return Response.json({ error: "Invalid code" }, { status: 400 });
@@ -164,7 +271,7 @@ export async function PUT(req: Request, { params }: RouteParams) {
 
     return Response.json({ pattern: updatedPattern });
   } catch (error) {
-    console.error("Error updating pattern:", error);
+    console.error("Error patching pattern:", error);
     return Response.json(
       {
         error: "Failed to update pattern",

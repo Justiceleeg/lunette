@@ -1,17 +1,24 @@
 "use client";
 
 import { useState, useEffect, type ReactNode } from "react";
-import { MessageSquare, BookOpen } from "lucide-react";
+import { MessageSquare, BookOpen, Lightbulb } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ReferencePanel } from "@/components/reference/ReferencePanel";
+import { InsightsPanel } from "@/components/learn/InsightsPanel";
+import type { AnalysisResponse } from "@/lib/ai/analysis-prompt";
 
-type TabType = "chat" | "reference";
+type TabType = "chat" | "reference" | "insights";
 
 interface RightPanelProps {
   children: ReactNode; // Chat content
   onPlay: (code: string) => void;
   onStop: () => void;
   playingCode: string | null;
+  // Insights props
+  code?: string;
+  savedInsights?: AnalysisResponse | null;
+  savedCodeHash?: string | null;
+  isOwner?: boolean; // Whether the current user owns this pattern
 }
 
 const STORAGE_KEY = "lunette-right-panel-tab";
@@ -21,6 +28,10 @@ export function RightPanel({
   onPlay,
   onStop,
   playingCode,
+  code,
+  savedInsights,
+  savedCodeHash,
+  isOwner = true,
 }: RightPanelProps) {
   const [activeTab, setActiveTab] = useState<TabType>("chat");
   const [isHydrated, setIsHydrated] = useState(false);
@@ -28,7 +39,7 @@ export function RightPanel({
   // Load saved tab preference from localStorage
   useEffect(() => {
     const saved = localStorage.getItem(STORAGE_KEY) as TabType | null;
-    if (saved === "chat" || saved === "reference") {
+    if (saved === "chat" || saved === "reference" || saved === "insights") {
       setActiveTab(saved);
     }
     setIsHydrated(true);
@@ -47,26 +58,38 @@ export function RightPanel({
         <button
           onClick={() => handleTabChange("chat")}
           className={cn(
-            "flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors",
+            "flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm font-medium transition-colors",
             activeTab === "chat"
               ? "text-brand-600 border-b-2 border-brand-600 -mb-px"
-              : "text-subtext-color hover:text-default-font hover:bg-neutral-50"
+              : "text-subtext-color hover:text-default-font hover:bg-neutral-800/50"
           )}
         >
           <MessageSquare className="w-4 h-4" />
-          Chat
+          <span className="hidden sm:inline">Chat</span>
+        </button>
+        <button
+          onClick={() => handleTabChange("insights")}
+          className={cn(
+            "flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm font-medium transition-colors",
+            activeTab === "insights"
+              ? "text-brand-600 border-b-2 border-brand-600 -mb-px"
+              : "text-subtext-color hover:text-default-font hover:bg-neutral-800/50"
+          )}
+        >
+          <Lightbulb className="w-4 h-4" />
+          <span className="hidden sm:inline">Insights</span>
         </button>
         <button
           onClick={() => handleTabChange("reference")}
           className={cn(
-            "flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors",
+            "flex-1 flex items-center justify-center gap-1.5 px-3 py-2.5 text-sm font-medium transition-colors",
             activeTab === "reference"
               ? "text-brand-600 border-b-2 border-brand-600 -mb-px"
-              : "text-subtext-color hover:text-default-font hover:bg-neutral-50"
+              : "text-subtext-color hover:text-default-font hover:bg-neutral-800/50"
           )}
         >
           <BookOpen className="w-4 h-4" />
-          Reference
+          <span className="hidden sm:inline">Reference</span>
         </button>
       </div>
 
@@ -79,6 +102,13 @@ export function RightPanel({
           </div>
         ) : activeTab === "chat" ? (
           <div className="h-full">{children}</div>
+        ) : activeTab === "insights" ? (
+          <InsightsPanel
+            code={code || ""}
+            savedInsights={savedInsights}
+            savedCodeHash={savedCodeHash}
+            isOwner={isOwner}
+          />
         ) : (
           <ReferencePanel
             onPlay={onPlay}

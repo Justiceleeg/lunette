@@ -29,6 +29,7 @@ import {
   getLastError,
 } from "@/lib/strudel/runtime";
 import { Loader2 } from "lucide-react";
+import type { AnalysisResponse } from "@/lib/ai/analysis-prompt";
 
 interface PatternData {
   id: string;
@@ -38,6 +39,8 @@ interface PatternData {
   isPublic: boolean;
   createdAt: string;
   updatedAt: string;
+  insights?: string | null;
+  insightsCodeHash?: string | null;
 }
 
 export default function EditorPage() {
@@ -72,6 +75,10 @@ export default function EditorPage() {
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
 
+  // Insights state (stored with pattern)
+  const [savedInsights, setSavedInsights] = useState<AnalysisResponse | null>(null);
+  const [savedCodeHash, setSavedCodeHash] = useState<string | null>(null);
+
   // Fetch pattern on mount
   useEffect(() => {
     async function fetchPattern() {
@@ -104,6 +111,17 @@ export default function EditorPage() {
           createdAt: pattern.createdAt,
           updatedAt: pattern.updatedAt,
         });
+
+        // Load saved insights if available
+        if (pattern.insights) {
+          try {
+            const insights = JSON.parse(pattern.insights) as AnalysisResponse;
+            setSavedInsights(insights);
+            setSavedCodeHash(pattern.insightsCodeHash || null);
+          } catch {
+            // Invalid JSON, ignore
+          }
+        }
       } catch {
         setPatternError("Failed to load pattern");
       } finally {
@@ -311,6 +329,16 @@ export default function EditorPage() {
 
   const handleSavePattern = useCallback((pattern: Pattern) => {
     setCurrentPattern(pattern);
+    // Update insights from the saved pattern (API generates them on save)
+    if (pattern.insights) {
+      try {
+        const insights = JSON.parse(pattern.insights) as AnalysisResponse;
+        setSavedInsights(insights);
+        setSavedCodeHash(pattern.insightsCodeHash || null);
+      } catch {
+        // Invalid JSON, ignore
+      }
+    }
   }, []);
 
   const handleVisibilityChange = useCallback((isPublic: boolean) => {
@@ -361,12 +389,15 @@ export default function EditorPage() {
     </div>
   );
 
-  // Right pane content (Chat + Reference tabs)
+  // Right pane content (Chat + Insights + Reference tabs)
   const rightPane = (
     <RightPanel
       onPlay={handlePlayChatCode}
       onStop={handleStopChatCode}
       playingCode={playingChatCode}
+      code={code}
+      savedInsights={savedInsights}
+      savedCodeHash={savedCodeHash}
     >
       <Chat
         messages={messages}

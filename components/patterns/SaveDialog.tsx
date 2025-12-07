@@ -23,6 +23,8 @@ export interface Pattern {
   updatedAt: string;
   forkedFromId?: string | null;
   originalAuthorId?: string | null;
+  insights?: string | null;
+  insightsCodeHash?: string | null;
 }
 
 interface SaveDialogProps {

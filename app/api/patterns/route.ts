@@ -1,9 +1,10 @@
 import { auth } from "@/lib/auth";
 import { db } from "@/lib/db";
-import { patterns } from "@/lib/db/schema";
+import { patterns, conceptTags } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
 import { headers } from "next/headers";
 import { nanoid } from "nanoid";
+import { generateInsights } from "@/lib/ai/generate-insights";
 
 export async function GET() {
   try {
@@ -73,19 +74,38 @@ export async function POST(req: Request) {
       }
     }
 
+    const patternId = nanoid();
+
+    // Generate insights for the pattern
+    const insightsResult = await generateInsights(code);
+
     const newPattern = {
-      id: nanoid(),
+      id: patternId,
       name: name.trim(),
       code,
       authorId: session.user.id,
       isPublic: Boolean(isPublic),
       forkedFromId: forkedFromId || null,
       originalAuthorId: resolvedOriginalAuthorId,
+      insights: insightsResult?.insightsJson || null,
+      insightsCodeHash: insightsResult?.codeHash || null,
       createdAt: new Date(),
       updatedAt: new Date(),
     };
 
     await db.insert(patterns).values(newPattern);
+
+    // Save concept tags if insights were generated
+    if (insightsResult && insightsResult.insights.concepts.length > 0) {
+      await db.insert(conceptTags).values(
+        insightsResult.insights.concepts.map((concept) => ({
+          id: crypto.randomUUID(),
+          patternId,
+          concept,
+          confidence: 1.0,
+        }))
+      );
+    }
 
     return Response.json({ pattern: newPattern }, { status: 201 });
   } catch (error) {
