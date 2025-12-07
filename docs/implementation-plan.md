@@ -2159,9 +2159,9 @@ export interface TriggerOptions {
 **Tasks:**
 
 ### Error Handling
-- [ ] Global error boundary
-- [ ] Friendly error messages for common issues
-- [ ] API error handling with user feedback
+- [x] Global error boundary
+- [x] Friendly error messages for common issues
+- [x] API error handling with user feedback
 - [ ] Strudel syntax error display
 
 ### Loading States
@@ -2209,8 +2209,21 @@ export interface TriggerOptions {
 - [ ] Works on Chrome, Firefox, Safari
 - [ ] Graceful degradation on mobile
 - [ ] Shared links show preview cards
-- [ ] 404 page exists
+- [x] 404 page exists
 - [ ] Site loads in under 3 seconds
+
+**Implementation Notes (Actual):**
+
+Error handling implementation:
+- `app/global-error.tsx` - Catches errors in root layout
+- `app/error.tsx` - App-level error boundary
+- `app/(main)/error.tsx` - Main route group error boundary
+- `app/not-found.tsx` - Custom 404 page
+- `lib/errors.ts` - Centralized error utilities with error codes and user-friendly messages
+- `lib/toast.ts` - Toast notification utilities
+- `components/ui/sonner.tsx` - Toast component (sonner)
+- All 7 API routes updated to use `errorResponse()` and `apiErrorHandler()`
+- Pattern components (SaveDialog, ShareDialog, ForkButton, PatternList) updated with toast notifications
 
 ---
 

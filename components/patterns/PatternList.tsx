@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { ChevronDown, FileText, Trash2, Loader2 } from "lucide-react";
 import type { Pattern } from "./SaveDialog";
+import { showSuccess, showError } from "@/lib/toast";
 
 interface PatternListProps {
   onLoad: (pattern: Pattern) => void;
@@ -37,12 +38,15 @@ export function PatternList({
     setLoading(true);
     try {
       const response = await fetch("/api/patterns");
-      if (response.ok) {
+      if (!response.ok) {
         const data = await response.json();
-        setPatterns(data.patterns || []);
+        throw new Error(data.userMessage || data.error || "Failed to load patterns");
       }
+      const data = await response.json();
+      setPatterns(data.patterns || []);
     } catch (err) {
-      console.error("Failed to fetch patterns:", err);
+      const message = err instanceof Error ? err.message : "Failed to load patterns";
+      showError(message);
     } finally {
       setLoading(false);
     }
@@ -64,12 +68,17 @@ export function PatternList({
         method: "DELETE",
       });
 
-      if (response.ok) {
-        setPatterns((prev) => prev.filter((p) => p.id !== patternId));
-        onDelete(patternId);
+      if (!response.ok) {
+        const data = await response.json();
+        throw new Error(data.userMessage || data.error || "Failed to delete pattern");
       }
+
+      setPatterns((prev) => prev.filter((p) => p.id !== patternId));
+      onDelete(patternId);
+      showSuccess("Pattern deleted");
     } catch (err) {
-      console.error("Failed to delete pattern:", err);
+      const message = err instanceof Error ? err.message : "Failed to delete pattern";
+      showError(message);
     } finally {
       setDeleting(null);
     }

@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Loader2 } from "lucide-react";
+import { showSuccess } from "@/lib/toast";
 
 export interface Pattern {
   id: string;
@@ -78,7 +79,7 @@ export function SaveDialog({
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || "Failed to save pattern");
+        throw new Error(data.userMessage || data.error || "Failed to save pattern");
       }
 
       const data = await response.json();
@@ -86,6 +87,7 @@ export function SaveDialog({
       onOpenChange(false);
       setName("");
       setIsPublic(false);
+      showSuccess(isUpdate ? "Pattern updated!" : "Pattern saved!");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save pattern");
     } finally {

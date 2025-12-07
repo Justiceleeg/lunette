@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
+import { Toaster } from "@/components/ui/sonner";
 
 const ibmPlexMono = IBM_Plex_Mono({
   subsets: ["latin"],
@@ -21,6 +22,7 @@ export default function RootLayout({
     <html lang="en" className="dark">
       <body className={`${ibmPlexMono.className} bg-default-background text-default-font`}>
         {children}
+        <Toaster position="bottom-right" />
       </body>
     </html>
   );

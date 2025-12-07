@@ -3,6 +3,7 @@ import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { userDiscoveries } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
+import { errorResponse, apiErrorHandler } from "@/lib/errors";
 
 export async function GET() {
   try {
@@ -11,7 +12,7 @@ export async function GET() {
     });
 
     if (!session?.user?.id) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
+      return errorResponse("UNAUTHORIZED");
     }
 
     const discoveries = await db
@@ -22,10 +23,6 @@ export async function GET() {
 
     return Response.json({ discoveries });
   } catch (error) {
-    console.error("Discoveries API error:", error);
-    return Response.json(
-      { error: "Failed to fetch discoveries" },
-      { status: 500 }
-    );
+    return apiErrorHandler(error);
   }
 }

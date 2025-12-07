@@ -1,6 +1,7 @@
 import { db } from "@/lib/db";
 import { patterns, users } from "@/lib/db/schema";
 import { eq, desc } from "drizzle-orm";
+import { apiErrorHandler } from "@/lib/errors";
 
 export async function GET(req: Request) {
   try {
@@ -35,13 +36,6 @@ export async function GET(req: Request) {
 
     return Response.json({ patterns: publicPatterns });
   } catch (error) {
-    console.error("Error fetching public patterns:", error);
-    return Response.json(
-      {
-        error: "Failed to fetch patterns",
-        details: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 }
-    );
+    return apiErrorHandler(error);
   }
 }

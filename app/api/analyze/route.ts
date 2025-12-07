@@ -11,6 +11,7 @@ import { headers } from "next/headers";
 import { db } from "@/lib/db";
 import { conceptTags, userDiscoveries } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
+import { errorResponse, apiErrorHandler } from "@/lib/errors";
 
 export async function POST(req: Request) {
   try {
@@ -24,7 +25,7 @@ export async function POST(req: Request) {
     console.log("Analyze request:", { codeLength: code?.length, patternId, saveDiscoveries });
 
     if (!code || typeof code !== "string") {
-      return Response.json({ error: "Code is required" }, { status: 400 });
+      return errorResponse("VALIDATION_ERROR", "Code is required for analysis");
     }
 
     // Get current session (optional - analysis works for non-authenticated users too)
@@ -57,14 +58,8 @@ export async function POST(req: Request) {
     const analysis = parseAnalysisResponse(result.text);
 
     if (!analysis) {
-      // If parsing failed, return raw response for debugging
-      return Response.json(
-        {
-          error: "Failed to parse analysis",
-          raw: result.text,
-        },
-        { status: 500 }
-      );
+      // If parsing failed, return error with raw response for debugging
+      return errorResponse("AI_ERROR", "Failed to parse analysis response");
     }
 
     // Optionally save concept tags for the pattern
@@ -79,14 +74,7 @@ export async function POST(req: Request) {
 
     return Response.json(analysis);
   } catch (error) {
-    console.error("Analyze API error:", error);
-    return Response.json(
-      {
-        error: "Failed to analyze pattern",
-        details: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 }
-    );
+    return apiErrorHandler(error);
   }
 }
 

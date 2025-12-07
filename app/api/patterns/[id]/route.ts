@@ -4,6 +4,7 @@ import { patterns, users, conceptTags } from "@/lib/db/schema";
 import { eq, and } from "drizzle-orm";
 import { headers } from "next/headers";
 import { generateInsights } from "@/lib/ai/generate-insights";
+import { errorResponse, apiErrorHandler } from "@/lib/errors";
 
 type RouteParams = { params: Promise<{ id: string }> };
 
@@ -31,7 +32,7 @@ export async function GET(req: Request, { params }: RouteParams) {
       .limit(1);
 
     if (result.length === 0 || !result[0].pattern) {
-      return Response.json({ error: "Pattern not found" }, { status: 404 });
+      return errorResponse("NOT_FOUND", "Pattern not found");
     }
 
     const { pattern, author } = result[0];
@@ -39,7 +40,7 @@ export async function GET(req: Request, { params }: RouteParams) {
     // If pattern is private, check if user is the author
     if (!pattern.isPublic) {
       if (!session?.user || session.user.id !== pattern.authorId) {
-        return Response.json({ error: "Pattern not found" }, { status: 404 });
+        return errorResponse("NOT_FOUND", "Pattern not found");
       }
     }
 
@@ -95,14 +96,7 @@ export async function GET(req: Request, { params }: RouteParams) {
       }
     });
   } catch (error) {
-    console.error("Error fetching pattern:", error);
-    return Response.json(
-      {
-        error: "Failed to fetch pattern",
-        details: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 }
-    );
+    return apiErrorHandler(error);
   }
 }
 
@@ -115,7 +109,7 @@ export async function PUT(req: Request, { params }: RouteParams) {
     });
 
     if (!session?.user) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
+      return errorResponse("UNAUTHORIZED");
     }
 
     // Check if pattern exists and user owns it
@@ -126,7 +120,7 @@ export async function PUT(req: Request, { params }: RouteParams) {
       .limit(1);
 
     if (!existingPattern) {
-      return Response.json({ error: "Pattern not found" }, { status: 404 });
+      return errorResponse("NOT_FOUND", "Pattern not found or you don't have permission to edit it");
     }
 
     const body = await req.json();
@@ -138,7 +132,7 @@ export async function PUT(req: Request, { params }: RouteParams) {
 
     if (name !== undefined) {
       if (typeof name !== "string" || name.trim() === "") {
-        return Response.json({ error: "Name cannot be empty" }, { status: 400 });
+        return errorResponse("VALIDATION_ERROR", "Pattern name cannot be empty");
       }
       updates.name = name.trim();
     }
@@ -148,7 +142,7 @@ export async function PUT(req: Request, { params }: RouteParams) {
 
     if (code !== undefined) {
       if (typeof code !== "string") {
-        return Response.json({ error: "Invalid code" }, { status: 400 });
+        return errorResponse("VALIDATION_ERROR", "Invalid code format");
       }
       updates.code = code;
       codeChanged = code !== existingPattern.code;
@@ -191,14 +185,7 @@ export async function PUT(req: Request, { params }: RouteParams) {
 
     return Response.json({ pattern: updatedPattern });
   } catch (error) {
-    console.error("Error updating pattern:", error);
-    return Response.json(
-      {
-        error: "Failed to update pattern",
-        details: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 }
-    );
+    return apiErrorHandler(error);
   }
 }
 
@@ -212,7 +199,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
     });
 
     if (!session?.user) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
+      return errorResponse("UNAUTHORIZED");
     }
 
     // Check if pattern exists and user owns it
@@ -223,7 +210,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
       .limit(1);
 
     if (!existingPattern) {
-      return Response.json({ error: "Pattern not found" }, { status: 404 });
+      return errorResponse("NOT_FOUND", "Pattern not found or you don't have permission to edit it");
     }
 
     const body = await req.json();
@@ -244,14 +231,14 @@ export async function PATCH(req: Request, { params }: RouteParams) {
     // Also support other fields for flexibility
     if (name !== undefined) {
       if (typeof name !== "string" || name.trim() === "") {
-        return Response.json({ error: "Name cannot be empty" }, { status: 400 });
+        return errorResponse("VALIDATION_ERROR", "Pattern name cannot be empty");
       }
       updates.name = name.trim();
     }
 
     if (code !== undefined) {
       if (typeof code !== "string") {
-        return Response.json({ error: "Invalid code" }, { status: 400 });
+        return errorResponse("VALIDATION_ERROR", "Invalid code format");
       }
       updates.code = code;
     }
@@ -271,14 +258,7 @@ export async function PATCH(req: Request, { params }: RouteParams) {
 
     return Response.json({ pattern: updatedPattern });
   } catch (error) {
-    console.error("Error patching pattern:", error);
-    return Response.json(
-      {
-        error: "Failed to update pattern",
-        details: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 }
-    );
+    return apiErrorHandler(error);
   }
 }
 
@@ -291,7 +271,7 @@ export async function DELETE(req: Request, { params }: RouteParams) {
     });
 
     if (!session?.user) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
+      return errorResponse("UNAUTHORIZED");
     }
 
     // Check if pattern exists and user owns it
@@ -302,20 +282,13 @@ export async function DELETE(req: Request, { params }: RouteParams) {
       .limit(1);
 
     if (!existingPattern) {
-      return Response.json({ error: "Pattern not found" }, { status: 404 });
+      return errorResponse("NOT_FOUND", "Pattern not found or you don't have permission to delete it");
     }
 
     await db.delete(patterns).where(eq(patterns.id, id));
 
     return Response.json({ success: true });
   } catch (error) {
-    console.error("Error deleting pattern:", error);
-    return Response.json(
-      {
-        error: "Failed to delete pattern",
-        details: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 }
-    );
+    return apiErrorHandler(error);
   }
 }

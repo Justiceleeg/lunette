@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { Pattern } from "./SaveDialog";
+import { showSuccess } from "@/lib/toast";
 
 interface ShareDialogProps {
   open: boolean;
@@ -45,6 +46,7 @@ export function ShareDialog({
   const handleCopy = async () => {
     await navigator.clipboard.writeText(shareUrl);
     setCopied(true);
+    showSuccess("Link copied!");
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -67,11 +69,13 @@ export function ShareDialog({
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || "Failed to update visibility");
+        throw new Error(data.userMessage || data.error || "Failed to update visibility");
       }
 
-      setIsPublic(!isPublic);
-      onVisibilityChange?.(!isPublic);
+      const newIsPublic = !isPublic;
+      setIsPublic(newIsPublic);
+      onVisibilityChange?.(newIsPublic);
+      showSuccess(newIsPublic ? "Pattern is now public" : "Pattern is now private");
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to update");
     } finally {

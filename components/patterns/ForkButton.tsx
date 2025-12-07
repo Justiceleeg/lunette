@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { GitFork, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { showSuccess, showError } from "@/lib/toast";
 
 interface ForkButtonProps {
   patternId: string;
@@ -40,13 +41,16 @@ export function ForkButton({
 
       if (!response.ok) {
         const data = await response.json();
-        throw new Error(data.error || "Failed to fork pattern");
+        throw new Error(data.userMessage || data.error || "Failed to fork pattern");
       }
 
       const data = await response.json();
+      showSuccess("Pattern forked! Opening in editor...");
       onForkSuccess?.(data.pattern.id);
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to fork pattern");
+      const message = err instanceof Error ? err.message : "Failed to fork pattern";
+      setError(message);
+      showError(message);
     } finally {
       setForking(false);
     }

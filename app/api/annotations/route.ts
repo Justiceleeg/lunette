@@ -9,6 +9,7 @@ import type {
   AnnotationRequest,
   AnnotationResponse,
 } from "@/lib/annotations/types";
+import { errorResponse, apiErrorHandler } from "@/lib/errors";
 
 /**
  * Generate unique annotation ID
@@ -23,10 +24,7 @@ export async function POST(req: Request) {
 
     // Validate request
     if (!code || typeof code !== "string") {
-      return Response.json(
-        { error: "Code is required and must be a string" },
-        { status: 400 }
-      );
+      return errorResponse("VALIDATION_ERROR", "Code is required for annotation");
     }
 
     // Don't analyze very short code
@@ -64,13 +62,6 @@ export async function POST(req: Request) {
 
     return Response.json({ annotations } satisfies AnnotationResponse);
   } catch (error) {
-    console.error("Annotations API error:", error);
-    return Response.json(
-      {
-        error: "Failed to generate annotations",
-        details: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 }
-    );
+    return apiErrorHandler(error);
   }
 }

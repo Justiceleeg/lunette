@@ -3,6 +3,7 @@ import { openai } from "@ai-sdk/openai";
 import { z } from "zod";
 import { buildSystemPrompt } from "@/lib/ai/system-prompt";
 import type { RuntimeState } from "@/lib/strudel/tools";
+import { apiErrorHandler } from "@/lib/errors";
 
 export async function POST(req: Request) {
   try {
@@ -41,13 +42,6 @@ export async function POST(req: Request) {
 
     return result.toUIMessageStreamResponse();
   } catch (error) {
-    console.error("Chat API error:", error);
-    return Response.json(
-      {
-        error: "Failed to process chat request",
-        details: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 }
-    );
+    return apiErrorHandler(error);
   }
 }

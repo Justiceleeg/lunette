@@ -5,6 +5,7 @@ import { eq, desc } from "drizzle-orm";
 import { headers } from "next/headers";
 import { nanoid } from "nanoid";
 import { generateInsights } from "@/lib/ai/generate-insights";
+import { errorResponse, apiErrorHandler } from "@/lib/errors";
 
 export async function GET() {
   try {
@@ -14,7 +15,7 @@ export async function GET() {
     });
 
     if (!session?.user) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
+      return errorResponse("UNAUTHORIZED");
     }
 
     const userPatterns = await db
@@ -25,14 +26,7 @@ export async function GET() {
 
     return Response.json({ patterns: userPatterns });
   } catch (error) {
-    console.error("Error fetching patterns:", error);
-    return Response.json(
-      {
-        error: "Failed to fetch patterns",
-        details: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 }
-    );
+    return apiErrorHandler(error);
   }
 }
 
@@ -44,18 +38,18 @@ export async function POST(req: Request) {
     });
 
     if (!session?.user) {
-      return Response.json({ error: "Unauthorized" }, { status: 401 });
+      return errorResponse("UNAUTHORIZED");
     }
 
     const body = await req.json();
     const { name, code, isPublic = false, forkedFromId } = body;
 
     if (!name || typeof name !== "string" || name.trim() === "") {
-      return Response.json({ error: "Name is required" }, { status: 400 });
+      return errorResponse("VALIDATION_ERROR", "Pattern name is required");
     }
 
     if (!code || typeof code !== "string") {
-      return Response.json({ error: "Code is required" }, { status: 400 });
+      return errorResponse("VALIDATION_ERROR", "Pattern code is required");
     }
 
     // Determine originalAuthorId when forking
@@ -109,13 +103,6 @@ export async function POST(req: Request) {
 
     return Response.json({ pattern: newPattern }, { status: 201 });
   } catch (error) {
-    console.error("Error creating pattern:", error);
-    return Response.json(
-      {
-        error: "Failed to create pattern",
-        details: error instanceof Error ? error.message : String(error),
-      },
-      { status: 500 }
-    );
+    return apiErrorHandler(error);
   }
 }
