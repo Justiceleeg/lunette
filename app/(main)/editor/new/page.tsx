@@ -5,10 +5,11 @@ import { useRouter } from "next/navigation";
 import { useChat } from "@ai-sdk/react";
 import { Editor } from "@/components/editor/Editor";
 import { Controls } from "@/components/editor/Controls";
+import { ErrorDisplay } from "@/components/editor/ErrorDisplay";
 import { SplitPane } from "@/components/layout/SplitPane";
 import { Header } from "@/components/layout/Header";
 import { Chat } from "@/components/chat/Chat";
-import { RightPanel } from "@/components/layout/RightPanel";
+import { RightPanel, type TabType } from "@/components/layout/RightPanel";
 import { SaveDialog, type Pattern } from "@/components/patterns/SaveDialog";
 import { ShareDialog } from "@/components/patterns/ShareDialog";
 import { useSession } from "@/lib/auth-client";
@@ -57,6 +58,9 @@ export default function NewEditorPage() {
   const [currentPattern, setCurrentPattern] = useState<Pattern | null>(null);
   const [saveDialogOpen, setSaveDialogOpen] = useState(false);
   const [shareDialogOpen, setShareDialogOpen] = useState(false);
+
+  // Tab control for opening Reference from error display
+  const [requestedTab, setRequestedTab] = useState<TabType | null>(null);
   const { data: session, isPending: sessionLoading } = useSession();
   const isAuthenticated = !!session?.user;
 
@@ -360,6 +364,8 @@ export default function NewEditorPage() {
       code={code}
       savedInsights={savedInsights}
       savedCodeHash={savedCodeHash}
+      requestedTab={requestedTab}
+      onTabOpened={() => setRequestedTab(null)}
     >
       <Chat
         messages={messages}
@@ -388,6 +394,13 @@ export default function NewEditorPage() {
         />
       </div>
 
+      {/* Error Display - positioned above controls */}
+      <ErrorDisplay
+        error={error}
+        onDismiss={() => setError(null)}
+        onOpenReference={() => setRequestedTab("reference")}
+      />
+
       {/* Controls Bar */}
       <Controls
         isPlaying={playing}
@@ -399,7 +412,6 @@ export default function NewEditorPage() {
         onBpmChange={handleBpmChange}
         onSave={() => setSaveDialogOpen(true)}
         onShare={() => setShareDialogOpen(true)}
-        error={error}
         hasUnsavedChanges={hasUnsavedChanges}
         isAuthenticated={isAuthenticated}
         hasCurrentPattern={!!currentPattern}

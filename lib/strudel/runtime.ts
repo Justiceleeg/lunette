@@ -29,6 +29,20 @@ let initPromise: Promise<void> | null = null;
 
 export function onError(callback: ErrorCallback) {
   errorCallback = callback;
+
+  // Also listen for Strudel's custom error event
+  // Strudel dispatches errors via document events instead of throwing
+  if (typeof document !== "undefined") {
+    document.addEventListener("strudel.log", ((event: CustomEvent) => {
+      const { message, type } = event.detail || {};
+      if (type === "error" || message?.includes("error:")) {
+        const errorMessage = message?.replace(/^\[.*?\]\s*error:\s*/i, "") || "Unknown error";
+        const err = new Error(errorMessage);
+        runtime.lastError = err;
+        errorCallback?.(err);
+      }
+    }) as EventListener);
+  }
 }
 
 export function onHighlight(callback: HighlightCallback) {

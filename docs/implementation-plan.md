@@ -2162,14 +2162,14 @@ export interface TriggerOptions {
 - [x] Global error boundary
 - [x] Friendly error messages for common issues
 - [x] API error handling with user feedback
-- [ ] Strudel syntax error display
+- [x] Strudel syntax error display
 
 ### Loading States
 - [ ] Skeleton loaders for gallery
 - [ ] Loading spinner for chat responses
 - [ ] Strudel initialization state
 
-### Responsive Design
+### Responsive Design (optional)
 - [ ] Mobile: Stack panes vertically
 - [ ] Tablet: Collapsible chat
 - [ ] Handle small screens gracefully (even if not optimized)
@@ -2179,7 +2179,7 @@ export interface TriggerOptions {
 - [ ] Optimize Strudel bundle (dynamic import)
 - [ ] Image optimization for avatars
 
-### Accessibility
+### Accessibility (optional)
 - [ ] Keyboard navigation in editor
 - [ ] ARIA labels on controls
 - [ ] Focus management in modals
@@ -2224,6 +2224,14 @@ Error handling implementation:
 - `components/ui/sonner.tsx` - Toast component (sonner)
 - All 7 API routes updated to use `errorResponse()` and `apiErrorHandler()`
 - Pattern components (SaveDialog, ShareDialog, ForkButton, PatternList) updated with toast notifications
+
+Strudel error display implementation:
+- `components/editor/ErrorDisplay.tsx` - User-friendly error panel with type detection (syntax, reference, runtime)
+- Parses Strudel errors to show contextual suggestions
+- Dismiss button and "Open Reference tab" link for reference errors
+- `lib/strudel/runtime.ts` - Listens to `strudel.log` custom event to capture internal Strudel errors
+- `components/layout/RightPanel.tsx` - Added `requestedTab` prop for external tab switching
+- Error display rendered at page level above controls bar
 
 ---
 

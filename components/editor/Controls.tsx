@@ -18,7 +18,6 @@ interface ControlsProps {
   onBpmChange: (bpm: number) => void;
   onSave?: () => void;
   onShare?: () => void;
-  error?: string | null;
   hasUnsavedChanges?: boolean;
   isAuthenticated?: boolean;
   hasCurrentPattern?: boolean;
@@ -39,7 +38,6 @@ export function Controls({
   onBpmChange,
   onSave,
   onShare,
-  error,
   hasUnsavedChanges,
   isAuthenticated,
   hasCurrentPattern,
@@ -175,13 +173,6 @@ export function Controls({
           />
         </div>
       </div>
-
-      {/* Error Display */}
-      {error && (
-        <div className="absolute bottom-14 left-4 right-4 p-3 bg-destructive/20 border border-destructive rounded text-destructive text-sm">
-          {error}
-        </div>
-      )}
     </div>
   );
 }

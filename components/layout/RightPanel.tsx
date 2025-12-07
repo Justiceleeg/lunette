@@ -7,7 +7,7 @@ import { ReferencePanel } from "@/components/reference/ReferencePanel";
 import { InsightsPanel } from "@/components/learn/InsightsPanel";
 import type { AnalysisResponse } from "@/lib/ai/analysis-prompt";
 
-type TabType = "chat" | "reference" | "insights";
+export type TabType = "chat" | "reference" | "insights";
 
 interface RightPanelProps {
   children: ReactNode; // Chat content
@@ -19,6 +19,9 @@ interface RightPanelProps {
   savedInsights?: AnalysisResponse | null;
   savedCodeHash?: string | null;
   isOwner?: boolean; // Whether the current user owns this pattern
+  // External tab control
+  requestedTab?: TabType | null;
+  onTabOpened?: () => void; // Called after switching to requested tab
 }
 
 const STORAGE_KEY = "lunette-right-panel-tab";
@@ -32,6 +35,8 @@ export function RightPanel({
   savedInsights,
   savedCodeHash,
   isOwner = true,
+  requestedTab,
+  onTabOpened,
 }: RightPanelProps) {
   const [activeTab, setActiveTab] = useState<TabType>("chat");
   const [isHydrated, setIsHydrated] = useState(false);
@@ -44,6 +49,15 @@ export function RightPanel({
     }
     setIsHydrated(true);
   }, []);
+
+  // Handle external tab switch requests
+  useEffect(() => {
+    if (requestedTab && isHydrated) {
+      setActiveTab(requestedTab);
+      localStorage.setItem(STORAGE_KEY, requestedTab);
+      onTabOpened?.();
+    }
+  }, [requestedTab, isHydrated, onTabOpened]);
 
   // Save tab preference to localStorage
   const handleTabChange = (tab: TabType) => {
