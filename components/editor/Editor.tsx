@@ -9,7 +9,12 @@ import { defaultKeymap, history, historyKeymap } from "@codemirror/commands";
 import { StateField, StateEffect } from "@codemirror/state";
 import { basicSetup } from "codemirror";
 import type { EditorSelection } from "@/lib/strudel/tools";
+import type { Annotation } from "@/lib/annotations/types";
 import { createStrudelDocsExtension } from "./strudelDocsExtension";
+import {
+  createAnnotationExtension,
+  setAnnotations,
+} from "./annotationExtension";
 
 interface EditorProps {
   value: string;
@@ -19,6 +24,7 @@ interface EditorProps {
   highlights?: Array<{ start: number; end: number }>;
   readOnly?: boolean;
   docsEnabled?: boolean;
+  annotations?: Annotation[];
 }
 
 // StateEffect for updating highlights
@@ -59,7 +65,7 @@ const highlightField = StateField.define<DecorationSet>({
   provide: (f) => EditorView.decorations.from(f),
 });
 
-export function Editor({ value, onChange, onEvaluate, onSelectionChange, highlights = [], readOnly = false, docsEnabled = true }: EditorProps) {
+export function Editor({ value, onChange, onEvaluate, onSelectionChange, highlights = [], readOnly = false, docsEnabled = true, annotations = [] }: EditorProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const onEvaluateRef = useRef(onEvaluate);
@@ -159,6 +165,9 @@ export function Editor({ value, onChange, onEvaluate, onSelectionChange, highlig
       extensions.push(createStrudelDocsExtension());
     }
 
+    // Always add annotation extension (controlled by annotations prop)
+    extensions.push(createAnnotationExtension());
+
     const state = EditorState.create({
       doc: initialValueRef.current,
       extensions,
@@ -203,6 +212,16 @@ export function Editor({ value, onChange, onEvaluate, onSelectionChange, highlig
       effects: setHighlights.of(highlights),
     });
   }, [highlights]);
+
+  // Update annotations
+  useEffect(() => {
+    const view = viewRef.current;
+    if (!view) return;
+
+    view.dispatch({
+      effects: setAnnotations.of(annotations),
+    });
+  }, [annotations]);
 
   return (
     <div

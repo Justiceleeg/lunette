@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { DocsToggle } from "./DocsToggle";
+import { AnnotationToggle } from "./AnnotationToggle";
 
 interface ControlsProps {
   isPlaying: boolean;
@@ -23,6 +24,9 @@ interface ControlsProps {
   hasCurrentPattern?: boolean;
   docsEnabled?: boolean;
   onDocsToggle?: (enabled: boolean) => void;
+  annotationsEnabled?: boolean;
+  onAnnotationsToggle?: (enabled: boolean) => void;
+  isAnalyzingAnnotations?: boolean;
 }
 
 export function Controls({
@@ -41,6 +45,9 @@ export function Controls({
   hasCurrentPattern,
   docsEnabled = true,
   onDocsToggle,
+  annotationsEnabled = true,
+  onAnnotationsToggle,
+  isAnalyzingAnnotations = false,
 }: ControlsProps) {
   // Local state for typing - allows intermediate values
   const [bpmInput, setBpmInput] = useState(bpm.toString());
@@ -131,6 +138,15 @@ export function Controls({
 
       {/* Right side controls */}
       <div className="flex items-center gap-4">
+        {/* Annotations Toggle */}
+        {onAnnotationsToggle && (
+          <AnnotationToggle
+            enabled={annotationsEnabled}
+            onChange={onAnnotationsToggle}
+            isAnalyzing={isAnalyzingAnnotations}
+          />
+        )}
+
         {/* Docs Toggle */}
         {onDocsToggle && (
           <DocsToggle enabled={docsEnabled} onChange={onDocsToggle} />

@@ -33,7 +33,9 @@ import {
 import { Play, Square, RotateCcw, ExternalLink, Loader2 } from "lucide-react";
 import type { AnalysisResponse } from "@/lib/ai/analysis-prompt";
 import { useDocsTooltip } from "@/hooks/useDocsTooltip";
+import { useAnnotations } from "@/hooks/useAnnotations";
 import { DocsToggle } from "@/components/editor/DocsToggle";
+import { AnnotationToggle } from "@/components/editor/AnnotationToggle";
 
 interface Author {
   id: string;
@@ -91,6 +93,15 @@ export default function PatternPage() {
   // Docs tooltip state
   const { enabled: docsEnabled, setEnabled: setDocsEnabled } = useDocsTooltip();
 
+  // Annotations state
+  const {
+    annotations,
+    isAnalyzing: isAnalyzingAnnotations,
+    enabled: annotationsEnabled,
+    setEnabled: setAnnotationsEnabled,
+    triggerAnalysis,
+  } = useAnnotations();
+
   // Fetch pattern
   useEffect(() => {
     async function fetchPattern() {
@@ -115,6 +126,13 @@ export default function PatternPage() {
 
     fetchPattern();
   }, [patternId]);
+
+  // Trigger annotation analysis when pattern loads
+  useEffect(() => {
+    if (pattern?.code && annotationsEnabled) {
+      triggerAnalysis();
+    }
+  }, [pattern?.code, annotationsEnabled, triggerAnalysis]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -374,6 +392,7 @@ export default function PatternPage() {
           highlights={highlights}
           readOnly
           docsEnabled={docsEnabled}
+          annotations={annotations}
         />
       </div>
     </div>
@@ -484,6 +503,13 @@ export default function PatternPage() {
 
         {/* Right side controls */}
         <div className="flex items-center gap-4">
+          {/* Annotations Toggle */}
+          <AnnotationToggle
+            enabled={annotationsEnabled}
+            onChange={setAnnotationsEnabled}
+            isAnalyzing={isAnalyzingAnnotations}
+          />
+
           {/* Docs Toggle */}
           <DocsToggle enabled={docsEnabled} onChange={setDocsEnabled} />
 

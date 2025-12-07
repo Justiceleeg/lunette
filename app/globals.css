@@ -215,6 +215,41 @@
   font-style: italic;
 }
 
+/* AI Annotation Highlight */
+.cm-annotation-highlight {
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: rgb(5, 162, 194); /* brand-600 */
+  text-underline-offset: 3px;
+}
+
+/* AI Annotation Tooltip */
+.cm-annotation-tooltip {
+  background: rgb(17, 24, 39); /* neutral-50 */
+  border: 1px solid rgb(55, 65, 81); /* neutral-200 */
+  border-left: 3px solid rgb(5, 162, 194); /* brand-600 - accent border */
+  border-radius: 6px;
+  padding: 8px 12px;
+  max-width: 300px;
+  font-family: "IBM Plex Mono", monospace;
+  font-size: 13px;
+  line-height: 1.4;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+  color: rgb(249, 250, 251); /* neutral-900 */
+}
+
+.cm-annotation-tooltip__text {
+  color: rgb(249, 250, 251); /* neutral-900 */
+}
+
+.cm-annotation-tooltip__concept {
+  color: rgb(5, 162, 194); /* brand-600 */
+  font-size: 11px;
+  margin-top: 6px;
+  text-transform: capitalize;
+  opacity: 0.8;
+}
+
 /* CodeMirror tooltip positioning override */
 .cm-tooltip {
   z-index: 100;
