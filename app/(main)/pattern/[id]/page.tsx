@@ -85,6 +85,7 @@ export default function PatternPage() {
   const [hasEvaluated, setHasEvaluated] = useState(false);
   const [bpm, setBpmState] = useState(120);
   const [highlights, setHighlights] = useState<Array<{ start: number; end: number }>>([]);
+  const [isInitializing, setIsInitializing] = useState(false);
 
   // Chat preview state
   const [playingChatCode, setPlayingChatCode] = useState<string | null>(null);
@@ -245,7 +246,12 @@ export default function PatternPage() {
 
     try {
       if (!isInitialized()) {
-        await initStrudel();
+        setIsInitializing(true);
+        try {
+          await initStrudel();
+        } finally {
+          setIsInitializing(false);
+        }
       }
 
       await evaluate(pattern.code);
@@ -294,7 +300,12 @@ export default function PatternPage() {
       setHighlights([]);
 
       if (!isInitialized()) {
-        await initStrudel();
+        setIsInitializing(true);
+        try {
+          await initStrudel();
+        } finally {
+          setIsInitializing(false);
+        }
       }
 
       await evaluate(chatCode);
@@ -475,9 +486,19 @@ export default function PatternPage() {
             variant="secondary"
             className="h-10 gap-2"
             title="Evaluate"
+            disabled={isInitializing}
           >
-            <RotateCcw className="w-4 h-4" />
-            <span className="hidden sm:inline">Evaluate</span>
+            {isInitializing ? (
+              <>
+                <Loader2 className="w-4 h-4 animate-spin" />
+                <span className="hidden sm:inline">Initializing...</span>
+              </>
+            ) : (
+              <>
+                <RotateCcw className="w-4 h-4" />
+                <span className="hidden sm:inline">Evaluate</span>
+              </>
+            )}
           </Button>
 
           {/* Fork button - show if authenticated and not owner */}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Play, Square, RotateCcw, Save, Circle, Share2 } from "lucide-react";
+import { Play, Square, RotateCcw, Save, Circle, Share2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
@@ -26,6 +26,7 @@ interface ControlsProps {
   annotationsEnabled?: boolean;
   onAnnotationsToggle?: (enabled: boolean) => void;
   isAnalyzingAnnotations?: boolean;
+  isInitializing?: boolean;
 }
 
 export function Controls({
@@ -46,6 +47,7 @@ export function Controls({
   annotationsEnabled = true,
   onAnnotationsToggle,
   isAnalyzingAnnotations = false,
+  isInitializing = false,
 }: ControlsProps) {
   // Local state for typing - allows intermediate values
   const [bpmInput, setBpmInput] = useState(bpm.toString());
@@ -94,12 +96,22 @@ export function Controls({
           variant="secondary"
           className="h-10 gap-2"
           title="Evaluate (Cmd+Enter)"
+          disabled={isInitializing}
         >
-          <RotateCcw className="w-4 h-4" />
-          <span className="hidden sm:inline">Evaluate</span>
-          <kbd className="hidden sm:inline text-xs text-muted-foreground ml-1">
-            {"\u2318"}+Enter
-          </kbd>
+          {isInitializing ? (
+            <>
+              <Loader2 className="w-4 h-4 animate-spin" />
+              <span className="hidden sm:inline">Initializing...</span>
+            </>
+          ) : (
+            <>
+              <RotateCcw className="w-4 h-4" />
+              <span className="hidden sm:inline">Evaluate</span>
+              <kbd className="hidden sm:inline text-xs text-muted-foreground ml-1">
+                {"\u2318"}+Enter
+              </kbd>
+            </>
+          )}
         </Button>
 
         {/* Save Button - only show when authenticated */}

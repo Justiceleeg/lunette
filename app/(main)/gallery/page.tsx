@@ -1,13 +1,16 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import useSWR from "swr";
 import { Header } from "@/components/layout/Header";
 import { PatternCard } from "@/components/patterns/PatternCard";
+import { PatternGridSkeleton } from "@/components/patterns/PatternCardSkeleton";
 import { useInlinePlayer } from "@/hooks/useInlinePlayer";
 import { useSession } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
+import { fetcher } from "@/lib/swr";
 import { Plus, Loader2 } from "lucide-react";
 
 interface UserPattern {
@@ -22,17 +25,25 @@ interface UserPattern {
   originalAuthorId: string | null;
 }
 
+interface PatternsResponse {
+  patterns: UserPattern[];
+}
+
 export default function GalleryPage() {
   const router = useRouter();
   const { data: session, isPending: sessionLoading } = useSession();
   const isAuthenticated = !!session?.user;
   const currentUserId = session?.user?.id;
 
-  const [patterns, setPatterns] = useState<UserPattern[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // SWR for data fetching - only fetch when authenticated
+  const { data, error, isLoading, mutate } = useSWR<PatternsResponse>(
+    isAuthenticated ? "/api/patterns" : null,
+    fetcher
+  );
 
-  const { currentPatternId, isPlaying, isLoading, play, stopPlayback } =
+  const patterns = data?.patterns ?? [];
+
+  const { currentPatternId, isPlaying, isLoading: isPlayerLoading, play, stopPlayback } =
     useInlinePlayer();
 
   // Redirect to login if not authenticated
@@ -42,30 +53,6 @@ export default function GalleryPage() {
     }
   }, [sessionLoading, isAuthenticated, router]);
 
-  // Fetch user's patterns
-  useEffect(() => {
-    async function fetchPatterns() {
-      if (!isAuthenticated) return;
-
-      try {
-        const response = await fetch("/api/patterns");
-        if (!response.ok) {
-          throw new Error("Failed to fetch patterns");
-        }
-        const data = await response.json();
-        setPatterns(data.patterns);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load patterns");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    if (isAuthenticated) {
-      fetchPatterns();
-    }
-  }, [isAuthenticated]);
-
   const handleDelete = useCallback(async (patternId: string) => {
     try {
       const response = await fetch(`/api/patterns/${patternId}`, {
@@ -74,11 +61,17 @@ export default function GalleryPage() {
       if (!response.ok) {
         throw new Error("Failed to delete pattern");
       }
-      setPatterns((prev) => prev.filter((p) => p.id !== patternId));
+      // Update cache optimistically
+      mutate(
+        (current) => current ? {
+          patterns: current.patterns.filter((p) => p.id !== patternId)
+        } : current,
+        false
+      );
     } catch (err) {
       console.error("Delete error:", err);
     }
-  }, []);
+  }, [mutate]);
 
   // Show loading while checking auth
   if (sessionLoading) {
@@ -100,15 +93,27 @@ export default function GalleryPage() {
     return null;
   }
 
-  if (loading) {
+  // Show skeleton only on initial load (no cached data yet)
+  if (isLoading && !data) {
     return (
       <main className="flex flex-col min-h-screen bg-default-background">
         <Header />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="flex items-center gap-2 text-subtext-color">
-            <Loader2 className="h-5 w-5 animate-spin" />
-            <span>Loading your patterns...</span>
+        <div className="flex-1 max-w-6xl mx-auto w-full px-4 py-8">
+          <div className="flex items-center justify-between mb-8">
+            <div>
+              <h1 className="text-2xl font-bold text-default-font">My Patterns</h1>
+              <p className="text-subtext-color mt-1">
+                Your personal collection of patterns
+              </p>
+            </div>
+            <Link href="/editor/new">
+              <Button className="gap-2">
+                <Plus className="h-4 w-4" />
+                Create New Pattern
+              </Button>
+            </Link>
           </div>
+          <PatternGridSkeleton count={6} />
         </div>
       </main>
     );
@@ -119,7 +124,7 @@ export default function GalleryPage() {
       <main className="flex flex-col min-h-screen bg-default-background">
         <Header />
         <div className="flex-1 flex items-center justify-center">
-          <div className="text-destructive">{error}</div>
+          <div className="text-destructive">Failed to load patterns</div>
         </div>
       </main>
     );
@@ -169,7 +174,7 @@ export default function GalleryPage() {
                   },
                 }}
                 isPlaying={isPlaying && currentPatternId === pattern.id}
-                isLoading={isLoading && currentPatternId === pattern.id}
+                isLoading={isPlayerLoading && currentPatternId === pattern.id}
                 onPlay={() => play(pattern.id, pattern.code)}
                 onStop={stopPlayback}
                 isAuthenticated={isAuthenticated}

@@ -1,12 +1,14 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import { useCallback } from "react";
 import { useRouter } from "next/navigation";
+import useSWR from "swr";
 import { Header } from "@/components/layout/Header";
 import { PatternCard } from "@/components/patterns/PatternCard";
+import { PatternGridSkeleton } from "@/components/patterns/PatternCardSkeleton";
 import { useInlinePlayer } from "@/hooks/useInlinePlayer";
 import { useSession } from "@/lib/auth-client";
-import { Loader2 } from "lucide-react";
+import { fetcher } from "@/lib/swr";
 
 interface Author {
   id: string;
@@ -27,38 +29,26 @@ interface PublicPattern {
   author: Author | null;
 }
 
+interface PatternsResponse {
+  patterns: PublicPattern[];
+}
+
 export default function BrowsePage() {
   const router = useRouter();
   const { data: session } = useSession();
   const isAuthenticated = !!session?.user;
   const currentUserId = session?.user?.id;
 
-  const [patterns, setPatterns] = useState<PublicPattern[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  // SWR for data fetching with caching
+  const { data, error, isLoading } = useSWR<PatternsResponse>(
+    "/api/patterns/public",
+    fetcher
+  );
 
-  const { currentPatternId, isPlaying, isLoading, play, stopPlayback } =
+  const patterns = data?.patterns ?? [];
+
+  const { currentPatternId, isPlaying, isLoading: isPlayerLoading, play, stopPlayback } =
     useInlinePlayer();
-
-  // Fetch public patterns
-  useEffect(() => {
-    async function fetchPatterns() {
-      try {
-        const response = await fetch("/api/patterns/public");
-        if (!response.ok) {
-          throw new Error("Failed to fetch patterns");
-        }
-        const data = await response.json();
-        setPatterns(data.patterns);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load patterns");
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    fetchPatterns();
-  }, []);
 
   const handleForkSuccess = useCallback(
     (newPatternId: string) => {
@@ -67,15 +57,19 @@ export default function BrowsePage() {
     [router]
   );
 
-  if (loading) {
+  // Show skeleton only on initial load (no cached data yet)
+  if (isLoading && !data) {
     return (
       <main className="flex flex-col min-h-screen bg-default-background">
         <Header />
-        <div className="flex-1 flex items-center justify-center">
-          <div className="flex items-center gap-2 text-subtext-color">
-            <Loader2 className="h-5 w-5 animate-spin" />
-            <span>Loading patterns...</span>
+        <div className="flex-1 max-w-6xl mx-auto w-full px-4 py-8">
+          <div className="mb-8">
+            <h1 className="text-2xl font-bold text-default-font">Browse Patterns</h1>
+            <p className="text-subtext-color mt-1">
+              Discover and play patterns shared by the community
+            </p>
           </div>
+          <PatternGridSkeleton count={6} />
         </div>
       </main>
     );
@@ -86,7 +80,7 @@ export default function BrowsePage() {
       <main className="flex flex-col min-h-screen bg-default-background">
         <Header />
         <div className="flex-1 flex items-center justify-center">
-          <div className="text-destructive">{error}</div>
+          <div className="text-destructive">Failed to load patterns</div>
         </div>
       </main>
     );
@@ -118,7 +112,7 @@ export default function BrowsePage() {
                 key={pattern.id}
                 pattern={pattern}
                 isPlaying={isPlaying && currentPatternId === pattern.id}
-                isLoading={isLoading && currentPatternId === pattern.id}
+                isLoading={isPlayerLoading && currentPatternId === pattern.id}
                 onPlay={() => play(pattern.id, pattern.code)}
                 onStop={stopPlayback}
                 onForkSuccess={handleForkSuccess}

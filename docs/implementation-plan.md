@@ -2165,9 +2165,9 @@ export interface TriggerOptions {
 - [x] Strudel syntax error display
 
 ### Loading States
-- [ ] Skeleton loaders for gallery
-- [ ] Loading spinner for chat responses
-- [ ] Strudel initialization state
+- [x] Skeleton loaders for gallery
+- [x] Loading spinner for chat responses
+- [x] Strudel initialization state
 
 ### Responsive Design (optional)
 - [ ] Mobile: Stack panes vertically

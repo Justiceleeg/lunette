@@ -47,6 +47,7 @@ export default function NewEditorPage() {
   const [bpm, setBpmState] = useState(120);
   const [error, setError] = useState<string | null>(null);
   const [highlights, setHighlights] = useState<Array<{ start: number; end: number }>>([]);
+  const [isInitializing, setIsInitializing] = useState(false);
 
   // Track which code from chat is currently playing
   const [playingChatCode, setPlayingChatCode] = useState<string | null>(null);
@@ -211,7 +212,12 @@ export default function NewEditorPage() {
       setError(null);
 
       if (!isInitialized()) {
-        await initStrudel();
+        setIsInitializing(true);
+        try {
+          await initStrudel();
+        } finally {
+          setIsInitializing(false);
+        }
       }
 
       await evaluate(codeToEvaluate);
@@ -268,7 +274,12 @@ export default function NewEditorPage() {
       setHighlights([]);
 
       if (!isInitialized()) {
-        await initStrudel();
+        setIsInitializing(true);
+        try {
+          await initStrudel();
+        } finally {
+          setIsInitializing(false);
+        }
       }
 
       await evaluate(chatCode);
@@ -420,6 +431,7 @@ export default function NewEditorPage() {
         annotationsEnabled={annotationsEnabled}
         onAnnotationsToggle={setAnnotationsEnabled}
         isAnalyzingAnnotations={isAnalyzingAnnotations}
+        isInitializing={isInitializing}
       />
 
       {/* Save Dialog */}
