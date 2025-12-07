@@ -156,12 +156,6 @@ function createTooltipContent(entry: ReferenceEntry): HTMLElement {
     container.appendChild(aliases);
   }
 
-  // Hint
-  const hint = document.createElement("div");
-  hint.className = "cm-docs-tooltip__hint";
-  hint.textContent = "See Reference tab for examples";
-  container.appendChild(hint);
-
   return container;
 }
 

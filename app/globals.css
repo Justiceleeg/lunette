@@ -215,13 +215,6 @@
   font-style: italic;
 }
 
-.cm-docs-tooltip__hint {
-  color: rgb(156, 163, 175);
-  font-size: 11px;
-  margin-top: 6px;
-  opacity: 0.7;
-}
-
 /* CodeMirror tooltip positioning override */
 .cm-tooltip {
   z-index: 100;
