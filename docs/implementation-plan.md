@@ -1613,6 +1613,543 @@ export const conceptDescriptions: Record<string, string> = {
 
 ---
 
+## Slice 10.5: Strudel Docs Tooltips
+
+**Goal:** Hover over any Strudel function in the editor to see its documentation, signature, and a quick example.
+
+**Dependencies:** Slice 9.7 (Reference Tab - provides `FUNCTION_REFERENCE` data)
+
+---
+
+### Overview
+
+When users hover over function names like `fast`, `jux`, or `lpf` in the editor, a tooltip appears above the code showing:
+- Function signature (e.g., `fast(factor: number)`)
+- Brief description
+- "See Reference tab for examples" link
+
+This provides inline documentation without leaving the editor, complementing the Reference tab.
+
+---
+
+### Files to Create
+
+### `src/components/editor/strudelDocsExtension.ts`
+```typescript
+// CodeMirror extension for Strudel function documentation tooltips
+
+import { hoverTooltip } from '@codemirror/view';
+import { FUNCTION_REFERENCE, type FunctionDef } from '@/lib/strudel/function-reference';
+
+// createStrudelDocsExtension(options: {
+//   enabled: boolean;
+// }): Extension[]
+//
+// Features:
+// - Uses CodeMirror's hoverTooltip() extension
+// - Parses token under cursor (word boundary detection)
+// - Matches against function names in FUNCTION_REFERENCE
+// - Also checks aliases (e.g., "sound" → "s")
+// - Returns tooltip DOM with signature + description
+// - Tooltip positioned above code (VS Code style)
+```
+
+### `src/components/editor/DocsTooltip.tsx`
+```typescript
+// React component for rendering docs tooltip content
+
+// Props:
+// - fn: FunctionDef
+//
+// Features:
+// - Shows function name + signature
+// - Brief description (first sentence or ~100 chars)
+// - Styled with monospace font
+// - Max width ~300px
+// - "See Reference tab" hint at bottom
+```
+
+### `src/hooks/useDocsTooltip.ts`
+```typescript
+// Hook for managing docs tooltip settings
+
+// interface UseDocsTooltipReturn {
+//   enabled: boolean;
+//   setEnabled: (enabled: boolean) => void;
+// }
+//
+// Features:
+// - Persists to localStorage: 'lunette-docs-tooltip-enabled'
+// - Default: enabled
+```
+
+### `src/components/editor/DocsToggle.tsx`
+```typescript
+// Toggle button for editor toolbar
+
+// Props:
+// - enabled: boolean
+// - onChange: (enabled: boolean) => void
+//
+// Features:
+// - Icon button (book or info icon)
+// - Tooltip: "Function Docs on Hover"
+// - Persists to localStorage
+```
+
+---
+
+### Files to Modify
+
+### `src/components/editor/Editor.tsx`
+```typescript
+// Add docs tooltip extension to CodeMirror
+
+// Changes:
+// - Accept docsEnabled prop: boolean
+// - Add createStrudelDocsExtension() to extensions array
+// - Reconfigure extension when docsEnabled changes
+```
+
+### `src/components/editor/Controls.tsx`
+```typescript
+// Add DocsToggle to toolbar
+
+// Changes:
+// - Add DocsToggle component (right side, near other toggles)
+// - Pass enabled state and onChange handler
+```
+
+### `src/app/(main)/editor/new/page.tsx`
+```typescript
+// Integrate docs tooltip hook
+
+// Changes:
+// - Add useDocsTooltip() hook
+// - Pass docsEnabled to Editor component
+// - Pass toggle props to Controls
+```
+
+### `src/app/(main)/editor/[id]/page.tsx`
+```typescript
+// Same changes as editor/new/page.tsx
+```
+
+### `src/app/(main)/pattern/[id]/page.tsx`
+```typescript
+// Docs tooltips work in read-only view too
+```
+
+### `src/app/globals.css`
+```css
+/* Add docs tooltip styles */
+
+.cm-docs-tooltip {
+  background: var(--color-neutral-800);
+  border: 1px solid var(--color-neutral-700);
+  border-radius: 6px;
+  padding: 8px 12px;
+  max-width: 300px;
+  font-family: var(--font-mono);
+  font-size: 13px;
+  line-height: 1.4;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+
+.cm-docs-tooltip__signature {
+  color: var(--color-brand-400);
+  font-weight: 500;
+  margin-bottom: 4px;
+}
+
+.cm-docs-tooltip__description {
+  color: var(--color-subtext);
+}
+
+.cm-docs-tooltip__hint {
+  color: var(--color-subtext);
+  font-size: 11px;
+  margin-top: 6px;
+  opacity: 0.7;
+}
+```
+
+---
+
+### Implementation Notes
+
+1. **Token Detection:**
+   ```typescript
+   // Use CodeMirror's syntaxTree or simple word boundary regex
+   // Get word at hover position
+   // Match against FUNCTION_REFERENCE function names and aliases
+   ```
+
+2. **Building Function Lookup Map:**
+   ```typescript
+   // On init, build a flat map for O(1) lookup:
+   const functionMap = new Map<string, FunctionDef>();
+   for (const category of FUNCTION_REFERENCE) {
+     for (const fn of category.functions) {
+       functionMap.set(fn.name, fn);
+       fn.aliases?.forEach(alias => functionMap.set(alias, fn));
+     }
+   }
+   ```
+
+3. **Tooltip Positioning:**
+   ```typescript
+   // hoverTooltip returns { pos, above: true, create: () => DOM }
+   // Position above by default
+   // CodeMirror handles viewport edge cases
+   ```
+
+4. **Debounce:**
+   - CodeMirror's hoverTooltip has built-in delay (~300ms default)
+   - No additional debouncing needed
+
+---
+
+**Acceptance Criteria:**
+- [ ] Hovering over Strudel function shows tooltip above code
+- [ ] Tooltip shows function signature and description
+- [ ] Tooltip matches aliases (e.g., hover "sound" shows "s" docs)
+- [ ] Toggle button in toolbar enables/disables tooltips
+- [ ] Toggle state persists across sessions (localStorage)
+- [ ] Works in editor and read-only pattern view
+- [ ] Tooltip styling matches app design system
+
+---
+
+## Slice 10.6: AI Code Annotations
+
+**Goal:** AI-generated pedagogical annotations that highlight interesting parts of the user's code with contextual insights.
+
+**Dependencies:** Slice 10.5 (Strudel Docs Tooltips - provides tooltip infrastructure), Slice 10 (Retrospective Learning)
+
+**Pedagogical Foundation:**
+- Annotations use BrainLift "retrospective theory" style: label what they hear, don't lecture
+- AI points out interesting patterns and explains why they sound the way they do
+- Uses "we" language (collaborator, not teacher)
+
+---
+
+### Overview
+
+As users write code, the AI periodically analyzes their pattern and highlights interesting sections with dotted underlines. Hovering over a highlighted section shows a pedagogical insight like:
+
+> "We're doubling the speed here—hear how it creates urgency?"
+
+This complements the Strudel docs tooltips (Slice 10.5) with contextual, creative insights.
+
+---
+
+### Two Tooltip Layers (Combined with 10.5)
+
+| Layer | Trigger | Source | Style | Visual |
+|-------|---------|--------|-------|--------|
+| **Strudel Docs** (10.5) | Hover any function | `FUNCTION_REFERENCE` | Technical/neutral | Standard tooltip |
+| **AI Annotations** (10.6) | Hover highlighted region | AI analysis | Pedagogical/creative | Dotted underline + tooltip |
+
+These layers coexist—hovering over an AI-annotated `jux()` call can show both tooltips.
+
+---
+
+### Analysis Trigger Logic
+
+```typescript
+// Trigger AI analysis when ANY of:
+// 1. Newline typed
+// 2. Closing paren `)` followed by whitespace, newline, or `.`
+// 3. 3 seconds of idle time (fallback for single-line patterns)
+
+// AND:
+// - Minimum 15 characters changed since last analysis
+// - Annotations toggle is enabled
+```
+
+### Annotation Persistence
+
+- Annotations persist until the code in that region changes significantly
+- "Significant change" = any edit within the annotation's character range
+- Annotations outside the edited region remain valid
+- Full re-analysis on major code changes (>50% of code modified)
+
+---
+
+### Files to Create
+
+### `src/lib/annotations/types.ts`
+```typescript
+// Annotation type definitions
+
+export interface Annotation {
+  id: string;
+  from: number;          // Character offset start
+  to: number;            // Character offset end
+  text: string;          // Pedagogical insight text
+  concept?: string;      // Optional linked concept (from Slice 10)
+}
+
+export interface AnnotationState {
+  annotations: Annotation[];
+  lastAnalyzedCode: string;
+  lastAnalyzedAt: number;
+  isAnalyzing: boolean;
+}
+```
+
+### `src/lib/annotations/trigger.ts`
+```typescript
+// Debounce and trigger logic for AI analysis
+
+export interface TriggerOptions {
+  minChangeThreshold: number;  // Minimum chars changed (default: 15)
+  idleTimeout: number;         // Idle fallback in ms (default: 3000)
+}
+
+// shouldTriggerAnalysis(
+//   currentCode: string,
+//   lastAnalyzedCode: string,
+//   event: 'newline' | 'paren-close' | 'idle' | 'manual'
+// ): boolean
+
+// createTriggerHandler(
+//   onTrigger: () => void,
+//   options?: TriggerOptions
+// ): { handleChange: (code: string, changeEvent?: string) => void, cleanup: () => void }
+```
+
+### `src/lib/annotations/diff.ts`
+```typescript
+// Determine which annotations are still valid after code changes
+
+// invalidateAnnotations(
+//   annotations: Annotation[],
+//   oldCode: string,
+//   newCode: string
+// ): Annotation[]
+//
+// Returns annotations that are still valid (outside changed regions)
+// Uses simple character range comparison
+```
+
+### `src/lib/ai/annotation-prompt.ts`
+```typescript
+// System prompt for annotation generation
+//
+// Instructs AI to:
+// - Identify interesting/educational code sections
+// - Write short, punchy pedagogical insights (1-2 sentences)
+// - Use "we" language (collaborator, not teacher)
+// - Connect code to sonic result
+// - Return structured JSON with character ranges
+//
+// Example output format:
+// {
+//   "annotations": [
+//     { "from": 0, "to": 12, "text": "Classic two-step groove—kick and hat trading off." },
+//     { "from": 14, "to": 22, "text": "We're doubling the speed here—hear how it creates urgency?" },
+//     { "from": 23, "to": 31, "text": "This mirrors the pattern in stereo. That spacey feel? That's jux." }
+//   ]
+// }
+```
+
+### `src/app/api/annotations/route.ts`
+```typescript
+// POST - Generate AI annotations for code
+// Request: { code: string, context?: string }
+// Response: { annotations: Annotation[] }
+//
+// Uses pedagogical prompt style from annotation-prompt.ts
+// Returns 1-5 annotations per pattern (as many as are interesting)
+// Each annotation targets a specific character range
+```
+
+### `src/hooks/useAnnotations.ts`
+```typescript
+// React hook for managing annotation state
+
+// interface UseAnnotationsReturn {
+//   annotations: Annotation[];
+//   isAnalyzing: boolean;
+//   enabled: boolean;
+//   setEnabled: (enabled: boolean) => void;
+//   triggerAnalysis: () => void;
+//   clearAnnotations: () => void;
+// }
+//
+// Features:
+// - Manages annotation state
+// - Handles trigger logic (newline, paren, idle)
+// - Persists enabled setting to localStorage
+// - Invalidates annotations on code changes
+// - Fetches from /api/annotations when triggered
+```
+
+### `src/components/editor/annotationExtension.ts`
+```typescript
+// CodeMirror extension for AI annotation display
+
+// createAnnotationExtension(options: {
+//   annotations: Annotation[];
+// }): Extension[]
+//
+// Features:
+// - Decoration.mark() for dotted underline on annotated sections
+// - hoverTooltip() for showing annotation text
+// - Tooltip positioned above code (VS Code style)
+// - Distinct styling from docs tooltips (accent border)
+```
+
+### `src/components/editor/AnnotationToggle.tsx`
+```typescript
+// Toggle button for editor toolbar
+
+// Props:
+// - enabled: boolean
+// - onChange: (enabled: boolean) => void
+// - isAnalyzing?: boolean
+//
+// Features:
+// - Icon button (lightbulb icon)
+// - Tooltip: "AI Annotations"
+// - Loading spinner while analyzing
+// - Persists to localStorage: 'lunette-annotations-enabled'
+```
+
+---
+
+### Files to Modify
+
+### `src/components/editor/Editor.tsx`
+```typescript
+// Add annotation extension to CodeMirror
+
+// Changes:
+// - Accept annotations prop: Annotation[]
+// - Add createAnnotationExtension() to extensions array
+// - Works alongside docs extension from Slice 10.5
+```
+
+### `src/components/editor/Controls.tsx`
+```typescript
+// Add AnnotationToggle to toolbar
+
+// Changes:
+// - Add AnnotationToggle next to DocsToggle
+// - Pass enabled state, onChange, and isAnalyzing
+```
+
+### `src/app/(main)/editor/new/page.tsx`
+```typescript
+// Integrate annotations hook
+
+// Changes:
+// - Add useAnnotations() hook
+// - Pass annotations to Editor component
+// - Wire up trigger logic to code changes
+// - Pass toggle props to Controls
+```
+
+### `src/app/(main)/editor/[id]/page.tsx`
+```typescript
+// Same changes as editor/new/page.tsx
+```
+
+### `src/app/(main)/pattern/[id]/page.tsx`
+```typescript
+// Annotations work in read-only view
+// - Trigger analysis on initial load
+// - No re-analysis needed (code doesn't change)
+```
+
+### `src/app/globals.css`
+```css
+/* Add AI annotation styles */
+
+.cm-annotation-highlight {
+  text-decoration: underline;
+  text-decoration-style: dotted;
+  text-decoration-color: var(--color-brand-400);
+  text-underline-offset: 3px;
+}
+
+.cm-annotation-tooltip {
+  background: var(--color-neutral-800);
+  border: 1px solid var(--color-neutral-700);
+  border-left: 3px solid var(--color-brand-500);
+  border-radius: 6px;
+  padding: 8px 12px;
+  max-width: 300px;
+  font-size: 13px;
+  line-height: 1.4;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
+}
+```
+
+---
+
+### Implementation Notes
+
+1. **Tooltip Positioning (VS Code Style):**
+   ```typescript
+   // Position tooltip above the hovered text
+   // Use CodeMirror's coordsAtPos() to get screen coordinates
+   // hoverTooltip handles this with above: true
+   ```
+
+2. **AI Analysis Prompt Structure:**
+   ```typescript
+   const prompt = `
+   Analyze this Strudel pattern and identify 1-5 interesting sections to annotate.
+
+   Style: Use "we" language, connect code to sound, be encouraging and concise.
+   Format: Return JSON with character ranges and short insights (1-2 sentences max).
+
+   Good examples:
+   - "Classic two-step groove—kick and hat trading off."
+   - "We're doubling the speed here—hear how it creates urgency?"
+   - "That wide, spacey feel? That's jux mirroring the pattern in stereo."
+
+   Code to analyze:
+   \`\`\`strudel
+   ${code}
+   \`\`\`
+   `;
+   ```
+
+3. **localStorage Keys:**
+   ```typescript
+   'lunette-annotations-enabled'  // boolean (default: true)
+   ```
+
+4. **Performance Considerations:**
+   - Debounce analysis (don't call API on every keystroke)
+   - Cache annotations until code changes
+   - Limit to 5 annotations max per analysis
+
+5. **Fallback Behavior:**
+   - If API fails, silently disable annotations (don't block editor)
+   - If no interesting sections found, show nothing (don't force annotations)
+
+---
+
+**Acceptance Criteria:**
+- [ ] Toggle button in editor toolbar enables/disables AI annotations
+- [ ] Toggle state persists across sessions (localStorage)
+- [ ] AI analyzes code on newline, closing paren, or idle timeout
+- [ ] Annotations appear as dotted underlines on interesting code sections
+- [ ] Hovering shows tooltip above code with pedagogical insight
+- [ ] Annotations use BrainLift style ("we" language, sound-focused)
+- [ ] Annotations persist until code in that region changes
+- [ ] Loading state shown during analysis
+- [ ] Both AI and docs tooltips can appear when hovering annotated functions
+- [ ] Annotations work in read-only pattern view
+- [ ] No errors if API fails (graceful degradation)
+
+---
+
 ## Slice 11: Polish + Launch Prep
 
 **Goal:** Production-ready quality.
@@ -1689,7 +2226,9 @@ Slice 8 (Sharing + Fork)
 Slice 9 (Gallery)
 Slice 9.5 (UX Refactor)
 Slice 9.7 (Reference Tab)
-Slice 10 (Learning Paths)
+Slice 10 (Retrospective Learning)
+Slice 10.5 (Strudel Docs Tooltips)
+Slice 10.6 (AI Code Annotations)
 Slice 11 (Polish)
 --- MVP Launch ---
 Slice 12 (Custom Sample Upload) [Post-MVP]
