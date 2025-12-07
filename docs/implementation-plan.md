@@ -2194,8 +2194,8 @@ export interface TriggerOptions {
 - [ ] Error tracking (Sentry or similar)
 
 ### Documentation
-- [ ] README with setup instructions
-- [ ] Environment variable documentation
+- [x] README with setup instructions
+- [x] Environment variable documentation
 - [ ] Contributing guide (if open source)
 
 ### Deployment
